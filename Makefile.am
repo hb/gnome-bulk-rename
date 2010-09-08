@@ -1,0 +1,2 @@
+SUBDIRS	= gnome-bulk-rename
+
