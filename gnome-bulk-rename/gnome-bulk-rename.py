@@ -34,6 +34,7 @@ import urllib
 import logging
 import logging.handlers
 
+from preview import PreviewNoop
 
 class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
@@ -142,8 +143,8 @@ class GnomeBulkRename(object):
             fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-                files_to_add.append([filename, filename, new_file])
-        # TODO: rename preview
+                files_to_add.append([filename, "", new_file])
+        PreviewNoop.preview(files_to_add)
         for file in files_to_add:
             self._files_model.append(file)
 
