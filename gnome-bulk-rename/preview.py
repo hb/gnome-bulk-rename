@@ -19,9 +19,21 @@
 
 """Preview-like objects need to implement the "preview" member function"""
 
+import string
+
 class PreviewNoop(object):
     """Source name is identical to target name."""
     @staticmethod    
     def preview(model):
         for row in model:
             row[1] = row[0]
+
+class PreviewTranslate(object):
+    """Character translations"""
+    def __init__(self, source, target):
+        self._translation_table = string.maketrans(source, target)
+    
+    def preview(self, model):
+        for row in model:
+             row[1] = row[0].translate(self._translation_table)
+             

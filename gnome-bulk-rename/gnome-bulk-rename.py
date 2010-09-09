@@ -34,7 +34,7 @@ import urllib
 import logging
 import logging.handlers
 
-from preview import PreviewNoop
+from preview import PreviewNoop, PreviewTranslate
 
 class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
@@ -51,6 +51,10 @@ class GnomeBulkRename(object):
         <menu action="file">
             <placeholder name="FileItems"/>
             <menuitem action="quit"/>
+        </menu>
+        <menu action="help">
+            <placeholder name="HelpItems"/>
+            <menuitem action="about"/>
         </menu>
     </menubar>
     <toolbar name="Toolbar">
@@ -82,9 +86,12 @@ class GnomeBulkRename(object):
         # actions
         self._uimanager = gtk.UIManager()
         self._action_group = gtk.ActionGroup("mainwindow")
-        actions = [('file', None, '_File'),
-                   ('view', None, '_View'),
-                   ('quit', gtk.STOCK_QUIT, '_Quit', "<Control>q", 'Quit the Program', self.quit)]
+        actions = [("file", None, "_File"),
+                   ("view", None, "_View"),
+                   ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
+                   ("help", None, "_Help"),
+                   ("about", gtk.STOCK_ABOUT, "About", None, "About this program", self._on_action_about)
+                   ]
         self._action_group.add_actions(actions)
         self._uimanager.insert_action_group(self._action_group)
         self._uimanager.add_ui_from_string(self.__ui)
@@ -99,6 +106,7 @@ class GnomeBulkRename(object):
         self._window.add(vbox)
 
         # menu bar
+        vbox.pack_start(self._uimanager.get_widget("/Menubar"), False)
         vbox.pack_start(self._uimanager.get_widget("/Toolbar"), False)
         
         # filename list
@@ -115,22 +123,43 @@ class GnomeBulkRename(object):
         renderer = gtk.CellRendererText()
         # column "original"
         column = gtk.TreeViewColumn("original", renderer, text=GnomeBulkRename.FILES_MODEL_COLUMN_ORIGINAL)
+        column.set_expand(True)
         treeview.append_column(column)
         # column "preview"
         column = gtk.TreeViewColumn("preview", renderer, text=GnomeBulkRename.FILES_MODEL_COLUMN_PREVIEW)
+        column.set_expand(True)
         treeview.append_column(column)
         # done with columns
         treeview.set_headers_visible(True)
         scrolledwin.add(treeview)
         
+        # hsep
+        vbox.pack_start(gtk.HSeparator(), False, False, 4)
+        
+        # 
+        vbox.pack_start(gtk.Label("foo"))
+        
         # show everything
         self._window.show_all()
 
 
-    def quit(self, dummy=None):
+    def quit(self):
         """Quit the application"""
         self._window.destroy()
+        
+    def _on_action_quit(self, dummy=None):
+        self.quit()
 
+    def _on_action_about(self, dummy=None):
+        """Credits dialog"""
+        authors = ["Holger Berndt <hb@gnome.org>"]
+        about = gtk.AboutDialog()
+        about.set_version("v%s" % __version__)
+        about.set_authors(authors)
+        about.set_license("GNU Lesser General Public License v2.1")
+        about.set_transient_for(self._window)
+        about.connect("response", lambda dlg, unused: dlg.destroy())
+        about.show()
 
     def _add_to_files_model(self, uris):
         """Adds a sequence of uris to the files model"""
@@ -144,7 +173,9 @@ class GnomeBulkRename(object):
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
                 files_to_add.append([filename, "", new_file])
-        PreviewNoop.preview(files_to_add)
+        prev = PreviewTranslate(" ", "_")
+        prev.preview(files_to_add)
+        #PreviewNoop.preview(files_to_add)
         for file in files_to_add:
             self._files_model.append(file)
 
