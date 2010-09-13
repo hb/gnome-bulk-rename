@@ -17,9 +17,6 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-#1/0
-#GtkEditable -> changed
-
 __version__ = "0.0.1"
 
 import sys
@@ -148,7 +145,7 @@ class GnomeBulkRename(object):
         # current preview and markup
         #self._current_preview = PreviewNoop(self.refresh)
         self._current_preview = PreviewTranslate(self.refresh, " ", "_")
-        self._current_markup = MarkupColor
+        self._current_markup = MarkupColor()
 
         if uris:
             self._add_to_files_model(uris)

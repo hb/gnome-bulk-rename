@@ -20,6 +20,8 @@
 """Markup changes between old and new names.
 Markup-like objects need to implement the markup member function."""
 
+import difflib
+
 
 class MarkupNoop(object):
     """No additional markup"""
@@ -32,8 +34,37 @@ class MarkupNoop(object):
 
 class MarkupColor(object):
     """Colored markup"""
-    @staticmethod
-    def markup(model):
+    
+    def __init__(self):
+        self._matcher = difflib.SequenceMatcher()
+        self._marker_delete_start = "<span bgcolor='LightSalmon1'>"
+        self._marker_delete_end = "</span>"
+        self._marker_insert_start = "<span bgcolor='Palegreen1'>"
+        self._marker_insert_end = "</span>"
+        self._marker_replace_start = "<span bgcolor='LightSkyBlue2'>"
+        self._marker_replace_end = "</span>"
+        
+    
+    def markup(self, model):
         for row in model:
-            row[2] = "".join(["<b>", row[0], "</b>"])
-            row[3] = row[1]
+            oldstring = row[0]
+            newstring = row[1]
+            oldlist = []
+            newlist = []
+            self._matcher.set_seqs(oldstring, newstring)
+            for (tag, i1, i2, j1, j2) in self._matcher.get_opcodes():
+                if tag == "equal":
+                    oldlist.append(oldstring[i1:i2])
+                    newlist.append(newstring[j1:j2])
+                elif tag == "delete":
+                    oldlist.extend([self._marker_delete_start, oldstring[i1:i2], self._marker_delete_end])
+                elif tag == "replace":
+                    oldlist.extend([self._marker_replace_start, oldstring[i1:i2], self._marker_replace_end])
+                    newlist.extend([self._marker_replace_start, newstring[j1:j2], self._marker_replace_end])
+                elif tag == "insert":
+                    newlist.extend([self._marker_insert_start, newstring[j1:j2], self._marker_insert_end])
+                    
+                
+
+            row[2] = "".join(oldlist)
+            row[3] = "".join(newlist)
