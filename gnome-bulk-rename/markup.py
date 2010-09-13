@@ -41,7 +41,7 @@ class MarkupColor(object):
         self._marker_delete_end = "</span>"
         self._marker_insert_start = "<span bgcolor='Palegreen1'>"
         self._marker_insert_end = "</span>"
-        self._marker_replace_start = "<span bgcolor='LightSkyBlue2'>"
+        self._marker_replace_start = "<span bgcolor='LightSkyBlue1'>"
         self._marker_replace_end = "</span>"
         
     

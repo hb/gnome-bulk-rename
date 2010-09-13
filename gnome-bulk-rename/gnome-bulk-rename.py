@@ -34,9 +34,9 @@ import urllib
 import logging
 import logging.handlers
 
-from preview import PreviewNoop, PreviewTranslate
+from preview import PreviewNoop
 from markup import MarkupColor
-
+    
 
 class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
@@ -47,6 +47,10 @@ class GnomeBulkRename(object):
     FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2
     FILES_MODEL_COLUMN_MARKUP_PREVIEW = 3
     FILES_MODEL_COLUMN_GFILE = 4
+    
+    PREVIEWS_SELECTION_COLUMNS = (str, object)
+    PREVIEWS_SELECTION_DESCRIPTION = 0
+    PREVIEWS_SELECTION_PREVIEW = 1
     
     TARGET_TYPE_URI_LIST = 80
     
@@ -138,15 +142,35 @@ class GnomeBulkRename(object):
         
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
-        
-        # TODO: hhb: combo box
-        vbox.pack_start(gtk.Label("foo"))
 
         # current preview and markup
-        #self._current_preview = PreviewNoop(self.refresh)
-        self._current_preview = PreviewTranslate(self.refresh, " ", "_")
+        self._current_preview = PreviewNoop(self.refresh)
         self._current_markup = MarkupColor()
+        
+        # hbox
+        hbox = gtk.HBox(False, 4) 
+        vbox.pack_start(hbox, False)
+        
+        # previews selection
+        self._previews_model = gtk.ListStore(*GnomeBulkRename.PREVIEWS_SELECTION_COLUMNS)
+        combobox = gtk.ComboBox(self._previews_model)
+        cell = gtk.CellRendererText()
+        combobox.pack_start(cell, True)
+        combobox.add_attribute(cell, "text", 0)
+        combobox.connect("changed", self._on_previews_combobox_changed)
+        hbox.pack_start(combobox)
 
+        self._collect_previews()
+        
+        if len(self._previews_model) > 0:
+            combobox.set_active(0)
+
+        # rename button
+        rename_button = gtk.Button("Rename")
+        rename_button.connect("clicked", self._on_rename_button_clicked)
+        hbox.pack_start(rename_button, False)
+
+        # add files
         if uris:
             self._add_to_files_model(uris)
         
@@ -156,6 +180,7 @@ class GnomeBulkRename(object):
 
     def quit(self):
         """Quit the application"""
+        self._logger.debug("quit")
         self._window.destroy()
         
 
@@ -173,6 +198,15 @@ class GnomeBulkRename(object):
         about.set_transient_for(self._window)
         about.connect("response", lambda dlg, unused: dlg.destroy())
         about.show()
+
+
+    def _on_rename_button_clicked(self, button):
+        print 'TODO rename button clicked'
+
+    def _on_previews_combobox_changed(self, combobox):
+        previewclass = combobox.get_model()[combobox.get_active()][GnomeBulkRename.PREVIEWS_SELECTION_PREVIEW]
+        self._current_preview = previewclass(self.refresh)
+        self.refresh()
 
 
     def _add_to_files_model(self, uris):
@@ -218,6 +252,38 @@ class GnomeBulkRename(object):
             uri_splitted = uris.split()
             self._add_to_files_model(uris.split())
 
+
+    def _collect_previews(self):
+        """Fill combobox with previews"""
+        # builtin
+        for preview in self._get_previews_from_model_by_introspection("preview"):
+            self._previews_model.append((preview.short_description, preview))
+
+
+    def _get_previews_from_model_by_introspection(self, modulename):
+        """Look for previewable objects in the module named modulename"""
+        try:
+            module = __import__(modulename)
+        except ImportError:
+            self._logger.error("Could not import module file: " + modulename)
+            return []
+
+        self._logger.debug("Inspecting module " + modulename)
+        previews = []
+        for entry in dir(module):
+            if entry.startswith("_"):
+                continue
+            classobj = getattr(module, entry)
+            if hasattr(classobj, "preview") and hasattr(classobj, "short_description"):
+                try:
+                    if classobj.skip:
+                        continue
+                except AttributeError:
+                    pass
+                previews.append(classobj)
+
+        self._logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
+        return previews
 
 
 def main(argv=None):
