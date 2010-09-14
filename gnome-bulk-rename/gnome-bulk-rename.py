@@ -21,6 +21,7 @@ __version__ = "0.0.1"
 
 import sys
 from optparse import OptionParser
+import cPickle as pickle
 
 import pygtk
 pygtk.require('2.0')
@@ -81,8 +82,11 @@ class GnomeBulkRename(object):
         self._application_name = "gnome-bulk-rename"
         glib.set_application_name(self._application_name)
 
+        # config dir
+        self._configdir = os.path.join(glib.get_user_config_dir(), self._application_name)
+
         # logging
-        logdir = os.path.join(glib.get_user_config_dir(), self._application_name, "log")
+        logdir = os.path.join(self._configdir, "log")
         if not os.path.isdir(logdir):
             os.makedirs(logdir)
         logfile =  os.path.join(logdir, self._application_name + ".log")
@@ -165,19 +169,16 @@ class GnomeBulkRename(object):
         vbox.pack_start(hbox, False)
         
         # previews selection
-        self._previews_model = gtk.ListStore(*GnomeBulkRename.PREVIEWS_SELECTION_COLUMNS)
-        combobox = gtk.ComboBox(self._previews_model)
+        previews_model = gtk.ListStore(*GnomeBulkRename.PREVIEWS_SELECTION_COLUMNS)
+        self._previews_combobox = gtk.ComboBox(previews_model)
         cell = gtk.CellRendererText()
-        combobox.pack_start(cell, True)
-        combobox.add_attribute(cell, "text", 0)
-        combobox.connect("changed", self._on_previews_combobox_changed)
-        hbox.pack_start(combobox)
+        self._previews_combobox.pack_start(cell, True)
+        self._previews_combobox.add_attribute(cell, "text", 0)
+        self._previews_combobox.connect("changed", self._on_previews_combobox_changed)
+        hbox.pack_start(self._previews_combobox)
 
         self._collect_previews()
         
-        if len(self._previews_model) > 0:
-            combobox.set_active(0)
-
         # rename button
         rename_button = gtk.Button("Rename")
         rename_button.connect("clicked", self._on_rename_button_clicked)
@@ -187,14 +188,51 @@ class GnomeBulkRename(object):
         if uris:
             self._add_to_files_model(uris)
         
+        # restore state
+        self._restore_state()
+        
         # show everything
         self._window.show_all()
 
 
     def quit(self):
         """Quit the application"""
+        self._save_state()
         self._logger.debug("quit")
         self._window.destroy()
+
+    
+    def _save_state(self):
+        self._logger.debug("Saving state")
+        state = {}
+        
+        # combo box
+        previews_model = self._previews_combobox.get_model()
+        idx = self._previews_combobox.get_active()
+        if idx >= 0:
+            state["current_preview_short_description"] = previews_model[idx][0] 
+            
+        pickle.dump(state, open(os.path.join(self._configdir, "state"), "w"))
+
+
+    def _restore_state(self):
+        # state restore
+        statesavefilename = os.path.join(self._configdir, "state")
+        if not os.path.isfile(statesavefilename):
+            return
+        
+        self._logger.debug("Restoring state")
+        state = pickle.load(open(statesavefilename, "r"))
+        
+        # previews combo box
+        tar = 0 
+        if "current_preview_short_description" in state:
+            desc = state["current_preview_short_description"]
+            for ii, row in enumerate(self._previews_combobox.get_model()):
+                if row[0] == desc:
+                    tar = ii
+                    break
+        self._previews_combobox.set_active(tar)
 
 
     def _on_action_quit(self, dummy=None):
@@ -281,9 +319,11 @@ class GnomeBulkRename(object):
 
     def _collect_previews(self):
         """Fill combobox with previews"""
+        previews_model = self._previews_combobox.get_model()
+        
         # builtin
         for preview in self._get_previews_from_model_by_introspection("preview"):
-            self._previews_model.append((preview.short_description, preview))
+            previews_model.append((preview.short_description, preview))
 
 
     def _get_previews_from_model_by_introspection(self, modulename):

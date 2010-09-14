@@ -44,8 +44,8 @@ def check_for_double_targets(model):
         for ii in dd[filename]:
             if not model[ii][5] == gtk.STOCK_DIALOG_ERROR:
                 model[ii][5] = gtk.STOCK_DIALOG_WARNING
-                model[ii][6].append("Double output filename")
-        
+            model[ii][6].append("Double output filename")
+
     
 
 def check_for_already_existing_names(model):
