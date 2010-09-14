@@ -155,7 +155,7 @@ class GnomeBulkRename(object):
         treeview.set_tooltip_column(GnomeBulkRename.FILES_MODEL_COLUMN_TOOLTIP)
         scrolledwin.add(treeview)
         
-        # info bar : TODO
+        # info bar
         self._files_info_bar = gtk.InfoBar()
         self._files_info_bar.set_no_show_all(True)
 
