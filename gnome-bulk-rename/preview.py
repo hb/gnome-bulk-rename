@@ -68,3 +68,20 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
     def __init__(self, refresh_func):
         PreviewTranslate.__init__(self, refresh_func)
         self.set_source_and_target(" ", "_")
+
+
+class PreviewReplaceEverySecondWithFixedString(object):
+    """Just for testing"""
+    
+    short_description = "Replace with fixed string"
+    skip = False
+    
+    def __init__(self, refresh_func):
+        pass
+    
+    def preview(self, model):
+        for ii,row in enumerate(model):
+            if (ii % 2) == 0:
+                row[1] = "foobar"
+            else:
+                row[1] = row[0]

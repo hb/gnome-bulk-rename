@@ -36,17 +36,20 @@ import logging.handlers
 
 from preview import PreviewNoop
 from markup import MarkupColor
-    
+import check
 
 class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
     
-    FILES_MODEL_COLUMNS = (str, str, str, str, object)
+    # other modules rely on this order
+    FILES_MODEL_COLUMNS = (str, str, str, str, object, str, object)
     FILES_MODEL_COLUMN_ORIGINAL = 0
     FILES_MODEL_COLUMN_PREVIEW = 1
     FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2
     FILES_MODEL_COLUMN_MARKUP_PREVIEW = 3
     FILES_MODEL_COLUMN_GFILE = 4
+    FILES_MODEL_COLUMN_ICON_STOCK = 5
+    FILES_MODEL_COLUMN_NOTES = 6
     
     PREVIEWS_SELECTION_COLUMNS = (str, object)
     PREVIEWS_SELECTION_DESCRIPTION = 0
@@ -127,19 +130,29 @@ class GnomeBulkRename(object):
         treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
                   [('text/uri-list', 0, GnomeBulkRename.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
         treeview.connect("drag-data-received", self._on_drag_data_received)
-        renderer = gtk.CellRendererText()
+        treeview.get_selection().set_mode(gtk.SELECTION_NONE)
+        textrenderer = gtk.CellRendererText()
+        pixbufrenderer = gtk.CellRendererPixbuf()
         # column "original"
-        column = gtk.TreeViewColumn("original", renderer, markup=GnomeBulkRename.FILES_MODEL_COLUMN_MARKUP_ORIGINAL)
+        column = gtk.TreeViewColumn("original", textrenderer, markup=GnomeBulkRename.FILES_MODEL_COLUMN_MARKUP_ORIGINAL)
         column.set_expand(True)
         treeview.append_column(column)
         # column "preview"
-        column = gtk.TreeViewColumn("preview", renderer, markup=GnomeBulkRename.FILES_MODEL_COLUMN_MARKUP_PREVIEW)
+        column = gtk.TreeViewColumn("preview", textrenderer, markup=GnomeBulkRename.FILES_MODEL_COLUMN_MARKUP_PREVIEW)
         column.set_expand(True)
+        treeview.append_column(column)
+        # column icon
+        column = gtk.TreeViewColumn("", pixbufrenderer, stock_id=GnomeBulkRename.FILES_MODEL_COLUMN_ICON_STOCK)
+        column.set_expand(False)
         treeview.append_column(column)
         # done with columns
         treeview.set_headers_visible(True)
         scrolledwin.add(treeview)
-        
+
+        # info bar : TODO
+        self._files_info_bar = gtk.InfoBar()
+        self._files_info_bar.set_no_show_all(True)
+
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
 
@@ -182,7 +195,7 @@ class GnomeBulkRename(object):
         """Quit the application"""
         self._logger.debug("quit")
         self._window.destroy()
-        
+
 
     def _on_action_quit(self, dummy=None):
         self.quit()
@@ -203,6 +216,7 @@ class GnomeBulkRename(object):
     def _on_rename_button_clicked(self, button):
         print 'TODO rename button clicked'
 
+
     def _on_previews_combobox_changed(self, combobox):
         previewclass = combobox.get_model()[combobox.get_active()][GnomeBulkRename.PREVIEWS_SELECTION_PREVIEW]
         self._current_preview = previewclass(self.refresh)
@@ -220,21 +234,33 @@ class GnomeBulkRename(object):
             fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-                files_to_add.append([filename, "", "", "", new_file])
+                files_to_add.append([filename, "", "", "", new_file, None, []])
 
-        # preview and markup
-        self._current_preview.preview(files_to_add)
-        self._current_markup.markup(files_to_add)
+        # refresh
+        self.refresh(files_to_add)
 
         # add to model
         for file in files_to_add:
             self._files_model.append(file)
 
 
-    def refresh(self):
+    def refresh(self, files=None):
         """Re-calculate previews"""
-        self._current_preview.preview(self._files_model)
-        self._current_markup.markup(self._files_model)
+        if files:
+            self._current_preview.preview(files)
+            self._current_markup.markup(files)
+        else:
+            self._current_preview.preview(self._files_model)
+            self._current_markup.markup(self._files_model)
+
+        self.check_targets()
+
+
+    def check_targets(self):
+        """Some sanity check if renaming can possibly work"""
+        check.clear_warnings_errors(self._files_model)
+        check.check_for_double_targets(self._files_model)
+        check.check_for_already_existing_names(self._files_model)
 
 
     def _is_file_in_model(self, gfile):
@@ -295,5 +321,5 @@ def main(argv=None):
     gtk.main()
 
 if __name__ == "__main__":
-    sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/aaaa_usb_stick_claus"])
+    sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/aaaa_usb_stick_claus", "file:///home/hb/menu.doc"])
     sys.exit(main(sys.argv))
