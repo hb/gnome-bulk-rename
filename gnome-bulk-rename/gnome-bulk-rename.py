@@ -39,6 +39,12 @@ from preview import PreviewNoop
 from markup import MarkupColor
 import check
 
+
+def clear_gtk_container(container):
+    """Remove all children from a GtkContainer"""
+    container.foreach(lambda child, cont : cont.remove(child), container)
+
+
 class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
     
@@ -158,6 +164,7 @@ class GnomeBulkRename(object):
         # info bar
         self._files_info_bar = gtk.InfoBar()
         self._files_info_bar.set_no_show_all(True)
+        vbox.pack_start(self._files_info_bar, False)
 
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
@@ -182,9 +189,9 @@ class GnomeBulkRename(object):
         self._collect_previews()
         
         # rename button
-        rename_button = gtk.Button("Rename")
-        rename_button.connect("clicked", self._on_rename_button_clicked)
-        hbox.pack_start(rename_button, False)
+        self._rename_button = gtk.Button("Rename")
+        self._rename_button.connect("clicked", self._on_rename_button_clicked)
+        hbox.pack_start(self._rename_button, False)
 
         # add files
         if uris:
@@ -276,31 +283,52 @@ class GnomeBulkRename(object):
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
                 files_to_add.append([filename, "", "", "", new_file, None, None])
 
-        # refresh
-        self.refresh(files_to_add)
 
         # add to model
         for file in files_to_add:
             self._files_model.append(file)
 
+        # checks
+        self.refresh()
 
-    def refresh(self, files=None):
+
+    def refresh(self):
         """Re-calculate previews"""
-        if files:
-            self._current_preview.preview(files)
-            self._current_markup.markup(files)
-        else:
-            self._current_preview.preview(self._files_model)
-            self._current_markup.markup(self._files_model)
-
+        self._current_preview.preview(self._files_model)
+        self._current_markup.markup(self._files_model)
         self.check_targets()
 
 
     def check_targets(self):
         """Some sanity check if renaming can possibly work"""
         check.clear_warnings_errors(self._files_model)
-        check.check_for_double_targets(self._files_model)
-        check.check_for_already_existing_names(self._files_model)
+        highest_level_double_targets = check.check_for_double_targets(self._files_model)
+        highest_level_existing_names = check.check_for_already_existing_names(self._files_model)
+        self._set_highest_problem_level(max(highest_level_double_targets, highest_level_existing_names))
+
+
+    def _set_highest_problem_level(self, highest_level):
+        if highest_level == 0:
+            self._files_info_bar.hide()
+            self._rename_button.set_sensitive(True)
+        elif highest_level == 1:
+            label = gtk.Label("Expect problems when trying to rename")
+            label.show()
+            content_area = self._files_info_bar.get_content_area()
+            clear_gtk_container(content_area)
+            content_area.pack_start(label, False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
+            self._files_info_bar.show()
+            self._rename_button.set_sensitive(True)
+        elif highest_level == 2:
+            label = gtk.Label("Rename not possible")
+            label.show()
+            content_area = self._files_info_bar.get_content_area()
+            clear_gtk_container(content_area)
+            content_area.pack_start(label, False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
+            self._files_info_bar.show()
+            self._rename_button.set_sensitive(False)
 
 
     def _is_file_in_model(self, gfile):

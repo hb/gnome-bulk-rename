@@ -61,8 +61,6 @@ class MarkupColor(object):
                     newlist.extend([self._marker_replace_start, newstring[j1:j2], self._marker_replace_end])
                 elif tag == "insert":
                     newlist.extend([self._marker_insert_start, newstring[j1:j2], self._marker_insert_end])
-                    
-                
 
             row[2] = "".join(oldlist)
             row[3] = "".join(newlist)
