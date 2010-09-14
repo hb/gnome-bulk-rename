@@ -27,7 +27,7 @@ import gtk
 def clear_warnings_errors(model):
     for row in model:
         row[5] = None
-        row[6] = []
+        row[6] = None
 
 def check_for_double_targets(model):
     """Returns a list of row numbers that are doubles"""
@@ -40,11 +40,16 @@ def check_for_double_targets(model):
         else:
             dd[filename] = [ii]
 
+    msg = "<b>WARNING:</b> Double output filename"
     for filename in double_filenames:
         for ii in dd[filename]:
             if not model[ii][5] == gtk.STOCK_DIALOG_ERROR:
                 model[ii][5] = gtk.STOCK_DIALOG_WARNING
-            model[ii][6].append("Double output filename")
+            if model[ii][6] == None:
+                model[ii][6] = msg
+            else:
+                model[ii][6] = model[ii][6] + "\n" + msg
+            
 
     
 

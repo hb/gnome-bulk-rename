@@ -43,14 +43,14 @@ class GnomeBulkRename(object):
     """GNOME bulk rename tool"""
     
     # other modules rely on this order
-    FILES_MODEL_COLUMNS = (str, str, str, str, object, str, object)
+    FILES_MODEL_COLUMNS = (str, str, str, str, object, str, str)
     FILES_MODEL_COLUMN_ORIGINAL = 0
     FILES_MODEL_COLUMN_PREVIEW = 1
     FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2
     FILES_MODEL_COLUMN_MARKUP_PREVIEW = 3
     FILES_MODEL_COLUMN_GFILE = 4
     FILES_MODEL_COLUMN_ICON_STOCK = 5
-    FILES_MODEL_COLUMN_NOTES = 6
+    FILES_MODEL_COLUMN_TOOLTIP = 6
     
     PREVIEWS_SELECTION_COLUMNS = (str, object)
     PREVIEWS_SELECTION_DESCRIPTION = 0
@@ -151,8 +151,10 @@ class GnomeBulkRename(object):
         treeview.append_column(column)
         # done with columns
         treeview.set_headers_visible(True)
+        # tooltip
+        treeview.set_tooltip_column(GnomeBulkRename.FILES_MODEL_COLUMN_TOOLTIP)
         scrolledwin.add(treeview)
-
+        
         # info bar : TODO
         self._files_info_bar = gtk.InfoBar()
         self._files_info_bar.set_no_show_all(True)
@@ -272,7 +274,7 @@ class GnomeBulkRename(object):
             fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-                files_to_add.append([filename, "", "", "", new_file, None, []])
+                files_to_add.append([filename, "", "", "", new_file, None, None])
 
         # refresh
         self.refresh(files_to_add)
