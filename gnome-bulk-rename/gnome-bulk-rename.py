@@ -122,6 +122,7 @@ class GnomeBulkRename(object):
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self._window.set_size_request(500, 300)
         self._window.connect("destroy", gtk.main_quit)
+        self._window.connect("delete-event", self._on_delete_event)
         self._window.add_accel_group(self._uimanager.get_accel_group())
         
         vbox = gtk.VBox(False, 0)
@@ -247,6 +248,8 @@ class GnomeBulkRename(object):
     def _on_action_quit(self, dummy=None):
         self.quit()
 
+    def _on_delete_event(self, widget, event):
+        self.quit()
 
     def _on_action_about(self, dummy=None):
         """Credits dialog"""
