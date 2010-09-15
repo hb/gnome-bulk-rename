@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2010 Holger Berndt <hb@gnome.org>
 # 
 # This program is free software; you can redistribute it and/or
@@ -49,9 +47,3 @@ class UndoStack(object):
         if success:
             self._undo_stack.append(action)
         return success
-
-# http://python.org/doc/essays/graphs.html
-# http://code.activestate.com/recipes/217212/
-# http://code.activestate.com/recipes/201423/
-# http://code.activestate.com/recipes/305313/
-# http://www.rexx.com/~dkuhlman/

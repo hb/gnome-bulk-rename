@@ -19,15 +19,15 @@
 Markup-like objects need to implement the markup member function."""
 
 import difflib
-
+import constants
 
 class MarkupNoop(object):
     """No additional markup"""
     @staticmethod
     def markup(model):
         for row in model:
-            row[2] = row[0]
-            row[3] = row[1]
+            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = row[constants.FILES_MODEL_COLUMN_PREVIEW]
 
 
 class MarkupColor(object):
@@ -45,8 +45,8 @@ class MarkupColor(object):
     
     def markup(self, model):
         for row in model:
-            oldstring = row[0]
-            newstring = row[1]
+            oldstring = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+            newstring = row[constants.FILES_MODEL_COLUMN_PREVIEW]
             oldlist = []
             newlist = []
             self._matcher.set_seqs(oldstring, newstring)
@@ -62,5 +62,5 @@ class MarkupColor(object):
                 elif tag == "insert":
                     newlist.extend([self._marker_insert_start, newstring[j1:j2], self._marker_insert_end])
 
-            row[2] = "".join(oldlist)
-            row[3] = "".join(newlist)
+            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = "".join(oldlist)
+            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = "".join(newlist)
