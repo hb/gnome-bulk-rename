@@ -145,6 +145,7 @@ class GnomeBulkRenameApp(object):
         
         # info bar
         self._files_info_bar = gtk.InfoBar()
+        self._files_info_bar.connect("response", self._on_files_info_bar_response)
         self._files_info_bar.set_no_show_all(True)
         vbox.pack_start(self._files_info_bar, False)
 
@@ -236,7 +237,7 @@ class GnomeBulkRenameApp(object):
         """Credits dialog"""
         authors = ["Holger Berndt <hb@gnome.org>"]
         about = gtk.AboutDialog()
-        about.set_version("v%s" % __version__)
+        about.set_version("v%s" % constants.__version__)
         about.set_authors(authors)
         about.set_license("GNU Lesser General Public License v2.1")
         about.set_transient_for(self._window)
@@ -292,6 +293,7 @@ class GnomeBulkRenameApp(object):
 
 
     def _set_highest_problem_level(self, highest_level):
+        
         if highest_level == 0:
             self._files_info_bar.hide()
             self._rename_button.set_sensitive(True)
@@ -308,8 +310,10 @@ class GnomeBulkRenameApp(object):
             label.show()
             content_area.pack_start(label, False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
+            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING)
             self._files_info_bar.show()
             self._rename_button.set_sensitive(True)
+            
         elif highest_level == 2:
             label = gtk.Label("Rename not possible")
             label.show()
@@ -317,9 +321,31 @@ class GnomeBulkRenameApp(object):
             clear_gtk_container(content_area)
             content_area.pack_start(label, False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
+            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR)
             self._files_info_bar.show()
             self._rename_button.set_sensitive(False)
 
+
+    def _on_files_info_bar_response(self, info_bar, response_id):
+        
+        if (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING) or (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR):
+            problems = set()
+            for row in self._files_model:
+                if row[constants.FILES_MODEL_COLUMN_TOOLTIP]:
+                    for entry in row[constants.FILES_MODEL_COLUMN_TOOLTIP].split("\n"):
+                        problems.add(entry)
+            if problems:
+                if response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING:
+                    dlg_type = gtk.MESSAGE_WARNING
+                    msg = "The following problems might prevent renaming:"
+                else:
+                     dlg_type = gtk.MESSAGE_ERROR
+                     msg = "The following problems prevent renaming:" 
+                dlg = gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=gtk.BUTTONS_CLOSE, message_format=msg)
+                dlg.format_secondary_markup("\n".join(problems))
+                dlg.show_all()
+                dlg.run()
+                dlg.destroy()
 
     def _is_file_in_model(self, gfile):
         """Return True if the given gio.File is already in the files model, False otherwise"""

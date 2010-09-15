@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-__version__ = "0.0.1"
-
 import sys
 from optparse import OptionParser
 
@@ -10,11 +8,12 @@ pygtk.require('2.0')
 import gtk
 
 from gnomebulkrenameapp import GnomeBulkRenameApp
+import constants
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-    parser = OptionParser(usage="%prog", version="%prog " + __version__, description="Bulk rename tool for GNOME")
+    parser = OptionParser(usage="%prog", version="%prog " + constants.__version__, description="Bulk rename tool for GNOME")
     (dummy_opt, args) = parser.parse_args(args=argv[1:])
     app = GnomeBulkRenameApp(args)
     gtk.main()

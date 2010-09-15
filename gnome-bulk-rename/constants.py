@@ -17,6 +17,8 @@
 
 """Constants defining model columns"""
 
+__version__ = "0.0.1"
+
 FILES_MODEL_COLUMNS = (str, str, str, str, object, str, str)
 FILES_MODEL_COLUMN_ORIGINAL = 0         # code relies on that
 FILES_MODEL_COLUMN_PREVIEW = 1          # code relies on that
@@ -29,3 +31,6 @@ FILES_MODEL_COLUMN_TOOLTIP = 6
 PREVIEWS_SELECTION_COLUMNS = (str, object)
 PREVIEWS_SELECTION_DESCRIPTION = 0
 PREVIEWS_SELECTION_PREVIEW = 1
+
+FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING = 1
+FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR = 2
