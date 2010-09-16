@@ -20,44 +20,107 @@
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gio
+
+import constants
 
 
-def clear_warnings_errors(model):
-    for row in model:
-        row[5] = None
-        row[6] = None
+class Checker(object):
+    """Perform various checks on a model"""
+
+    def __init__(self, model):
+        """Perform checks already in constructor"""
+        # results that can be queried
+        self.all_names_stay_the_same = True
+        self.highest_problem_level = 0
+        self.circular_uris = set()
+
+        # common data
+        self._model = model
+
+        # run tests
+        # these modify the model and/or set the results
+        self._clear_all_warnings_and_errors()
+        self._check_if_all_names_stay_the_same()
+        # there can't be any problems in this case
+        if not self.all_names_stay_the_same:
+
+            # more common data
+            self._list_of_source_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[0]) for row in model]
+            self._list_of_target_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]) for row in model]
+
+            self._dict_source_uri_to_index = {}
+            for ii, uri in enumerate(self._list_of_source_uris):
+                self._dict_source_uri_to_index[uri] = ii
+
+            self._dict_target_uri_to_indices = {}
+            for ii, uri in enumerate(self._list_of_target_uris):
+                self._dict_target_uri_to_indices.setdefault(uri, []).append(ii)                    
+            
+            # checks
+            self._check_for_double_targets()
+            self._check_for_circular_renaming()
+            self._check_for_already_existing_names()
 
 
-def check_for_double_targets(model):
-    """Sets pixbuf and tooltip text. Returns the highest problem level"""
-    double_filenames = []
-    dd = {}
-    for ii, filename in enumerate([row[1] for row in model]):
-        if filename in dd:
-            dd[filename].append(ii)
-            double_filenames.append(filename)
-        else:
-            dd[filename] = [ii]
+    def _clear_all_warnings_and_errors(self):
+        for row in self._model:
+            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = None
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = None
 
-    highest_problem = 0
-    msg = "<b>ERROR:</b> Double output filepath"
-    registered = set()
-    for filename in double_filenames:
-        for ii in dd[filename]:
-            if ii not in registered:
-                model[ii][5] = gtk.STOCK_DIALOG_ERROR
-                highest_problem = max(highest_problem, 2)
-                if model[ii][6] == None:
-                    model[ii][6] = msg
-                else:
-                    model[ii][6] = model[ii][6] + "\n" + msg
-                registered.add(ii)
-    
-    return highest_problem
-    
 
-def check_for_already_existing_names(model):
-    """Returns a list of row numbers whose target names already exist
-    on the filesystem at the time of the check"""
-    print 'TODO: check2'
-    return 0
+    def _check_if_all_names_stay_the_same(self):
+        for row in self._model:
+            if row[0] != row[1]:
+                self.all_names_stay_the_same = False
+        self._all_names_stay_the_same = True
+
+
+    def _check_for_double_targets(self):
+        """Sets pixbuf and tooltip text. Returns True if double targets exist"""
+        double_uris = []
+        for key,value in self._dict_target_uri_to_indices.iteritems():
+            if len(value) > 1:
+                double_uris.append(key)
+
+        msg = "<b>ERROR:</b> Double output filepath"
+        registered = set()
+        found_problem = False
+        for uri in double_uris:
+            for ii in self._dict_target_uri_to_indices[uri]:
+                if ii not in registered:
+                    self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                    self.highest_problem_level = max(self.highest_problem_level, 2)
+                    found_problem = True
+                    if self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
+                        self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
+                    else:
+                        self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] = self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] + "\n" + msg
+                    registered.add(ii)
+
+        return found_problem
+
+
+    def _check_for_circular_renaming(self):
+        self.circular_uris = set()
+        # we have a circular renaming if one row's source refers to the same uri as another row's target
+        set_of_source_uris = set(self._list_of_source_uris)
+        set_of_target_uris = set(self._list_of_target_uris)
+        possible_circular_uris = set_of_source_uris.intersection(set_of_target_uris)
+        for pu in possible_circular_uris:
+            if len(self._dict_target_uri_to_indices[pu]) > 1 or self._dict_source_uri_to_index[pu] != self._dict_target_uri_to_indices[pu][0]:
+                self.circular_uris.add(pu)
+
+
+    def _check_for_already_existing_names(self):
+        """Check if a target name already exists on the file system, but is not a circular rename"""
+        existing_files = set()
+        for row in self._model:
+            if row[0] == row[1]:
+                continue
+            new_name = row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]
+            if new_name not in self.circular_uris:
+                parent = gio.File(uri=row[constants.FILES_MODEL_COLUMN_URI_DIRNAME])
+                file = parent.get_child_for_display_name(row[1])
+                if file.query_exists():
+                    existing_files.add(new_name)

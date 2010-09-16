@@ -18,8 +18,14 @@
 """Preview-like objects need to implement the "preview" function and have
 a "short_description" class member. If it also has a "skip" class member
 which evaluates to True, the class is skipped.
+
 The constructor needs to take a refresh func as argument, which must not
-be called during preview (or an endless loop might occur)."""
+be called during preview (or an endless loop might occur). Also, it should
+only be called when the current preview configuration is sensible.
+The second argument is a function to be called when the preview class'
+configuration is currently invalid.
+
+After construction, the preview class is supposed to be in a valid state."""
 
 import string
 
@@ -30,8 +36,8 @@ class PreviewNoop(object):
     short_description = "No change"
     skip = False
 
-    def __init__(self, refresh_func):
-        self._refresh_func = refresh_func
+    def __init__(self, refresh_func, invalid_func):
+        pass
         
     def preview(self, model):
         for row in model:
@@ -44,8 +50,7 @@ class PreviewTranslate(object):
     short_description = "Character translation"
     skip = True
 
-    def __init__(self, refresh_func):
-        self._refresh_func = refresh_func
+    def __init__(self, refresh_func, invalid_func):
         self._translation_table = None
 
     def set_source_and_target(self, source, target):
@@ -63,8 +68,8 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
     short_description =  "Replace spaces with underscores"
     skip = False
 
-    def __init__(self, refresh_func):
-        PreviewTranslate.__init__(self, refresh_func)
+    def __init__(self, refresh_func, invalid_func):
+        PreviewTranslate.__init__(self, refresh_func, invalid_func)
         self.set_source_and_target(" ", "_")
 
 
@@ -74,7 +79,7 @@ class PreviewReplaceEverySecondWithFixedString(object):
     short_description = "Replace with fixed string"
     skip = False
     
-    def __init__(self, refresh_func):
+    def __init__(self, refresh_func, invalid_func):
         pass
     
     def preview(self, model):
@@ -91,12 +96,12 @@ class PreviewCircleNames(object):
     short_description = "Circle names"
     skip = False
 
-    def __init__(self, refresh_func):
+    def __init__(self, refresh_func, invalid_func):
         pass
 
     def preview(self, model):
         if not model:
             return
         for ii in range(1, len(model)):
-            model[ii-1][1] = model[ii][1]
+            model[ii-1][1] = model[ii][0]
         model[len(model)-1][1] = model[0][0]

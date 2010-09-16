@@ -153,9 +153,12 @@ class GnomeBulkRenameApp(object):
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
 
         # current preview and markup
-        self._current_preview = PreviewNoop(self.refresh)
+        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid)
         self._current_markup = MarkupColor()
-        
+
+        # checker
+        self._checker = None
+
         # hbox
         hbox = gtk.HBox(False, 4) 
         vbox.pack_start(hbox, False)
@@ -251,12 +254,25 @@ class GnomeBulkRenameApp(object):
 
     def _on_previews_combobox_changed(self, combobox):
         previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_SELECTION_PREVIEW]
-        self._current_preview = previewclass(self.refresh)
+        self._current_preview = previewclass(self.refresh, self.preview_invalid)
         self.refresh()
 
 
     def _add_to_files_model(self, uris):
         """Adds a sequence of uris to the files model"""
+        def __get_uri_dirname(gfile):
+            uri = gfile.get_uri()
+            # remove trailing slash
+            if uri[-1] == "/":
+                uri = uri[0:-1]
+            # find last slash
+            idx = uri.rfind("/")
+            if idx != -1:
+                dirname = uri[0:idx]
+            else:
+                raise ValueError
+            return dirname + "/"
+            
         # checking for doubles
         files_to_add = []
         for uri in uris:
@@ -266,14 +282,18 @@ class GnomeBulkRenameApp(object):
             fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-                files_to_add.append([filename, "", "", "", new_file, None, None])
+                try:
+                    dirname = __get_uri_dirname(new_file)
+                except ValueError:
+                    self._logger.error("Cannot add URI because it contains no slash: '%s'" % new_file.get_uri())
+                    continue
+                files_to_add.append([filename, "", "", "", new_file, None, None, dirname])
 
 
         # add to model
         for file in files_to_add:
             self._files_model.append(file)
 
-        # checks
         self.refresh()
 
 
@@ -281,22 +301,29 @@ class GnomeBulkRenameApp(object):
         """Re-calculate previews"""
         self._current_preview.preview(self._files_model)
         self._current_markup.markup(self._files_model)
-        self.check_targets()
+
+        self._checker = check.Checker(self._files_model)
+        self._update_rename_button_sensitivity()
+        self._set_highest_problem_level(self._checker.highest_problem_level)
 
 
-    def check_targets(self):
-        """Some sanity check if renaming can possibly work"""
-        check.clear_warnings_errors(self._files_model)
-        highest_level_double_targets = check.check_for_double_targets(self._files_model)
-        highest_level_existing_names = check.check_for_already_existing_names(self._files_model)
-        self._set_highest_problem_level(max(highest_level_double_targets, highest_level_existing_names))
+    def preview_invalid(self):
+        self._rename_button.set_sensitive(False)
+
+
+    def _update_rename_button_sensitivity(self):
+        sensitive = True
+
+        if self._checker and ((self._checker.all_names_stay_the_same) or (self._checker.highest_problem_level > 1)):
+            sensitive = False
+
+        self._rename_button.set_sensitive(sensitive)
 
 
     def _set_highest_problem_level(self, highest_level):
         
         if highest_level == 0:
             self._files_info_bar.hide()
-            self._rename_button.set_sensitive(True)
             return
 
         # clean up
@@ -312,7 +339,6 @@ class GnomeBulkRenameApp(object):
             self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
             self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING)
             self._files_info_bar.show()
-            self._rename_button.set_sensitive(True)
             
         elif highest_level == 2:
             label = gtk.Label("Rename not possible")
@@ -323,7 +349,6 @@ class GnomeBulkRenameApp(object):
             self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
             self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR)
             self._files_info_bar.show()
-            self._rename_button.set_sensitive(False)
 
 
     def _on_files_info_bar_response(self, info_bar, response_id):
@@ -346,6 +371,7 @@ class GnomeBulkRenameApp(object):
                 dlg.show_all()
                 dlg.run()
                 dlg.destroy()
+
 
     def _is_file_in_model(self, gfile):
         """Return True if the given gio.File is already in the files model, False otherwise"""

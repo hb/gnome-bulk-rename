@@ -15,11 +15,11 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-"""Constants defining model columns"""
+"""Various constants"""
 
 __version__ = "0.0.1"
 
-FILES_MODEL_COLUMNS = (str, str, str, str, object, str, str)
+FILES_MODEL_COLUMNS = (str, str, str, str, object, str, str, str)
 FILES_MODEL_COLUMN_ORIGINAL = 0         # code relies on that
 FILES_MODEL_COLUMN_PREVIEW = 1          # code relies on that
 FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2
@@ -27,6 +27,7 @@ FILES_MODEL_COLUMN_MARKUP_PREVIEW = 3
 FILES_MODEL_COLUMN_GFILE = 4
 FILES_MODEL_COLUMN_ICON_STOCK = 5
 FILES_MODEL_COLUMN_TOOLTIP = 6
+FILES_MODEL_COLUMN_URI_DIRNAME = 7
     
 PREVIEWS_SELECTION_COLUMNS = (str, object)
 PREVIEWS_SELECTION_DESCRIPTION = 0
