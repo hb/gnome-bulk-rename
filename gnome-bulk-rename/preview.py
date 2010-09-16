@@ -83,3 +83,20 @@ class PreviewReplaceEverySecondWithFixedString(object):
                 row[1] = "foobar"
             else:
                 row[1] = row[0]
+
+
+class PreviewCircleNames(object):
+    """Just for testing"""
+
+    short_description = "Circle names"
+    skip = False
+
+    def __init__(self, refresh_func):
+        pass
+
+    def preview(self, model):
+        if not model:
+            return
+        for ii in range(1, len(model)):
+            model[ii-1][1] = model[ii][1]
+        model[len(model)-1][1] = model[0][0]
