@@ -92,10 +92,7 @@ class Checker(object):
                     self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
                     self.highest_problem_level = max(self.highest_problem_level, 2)
                     found_problem = True
-                    if self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
-                        self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
-                    else:
-                        self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] = self._model[ii][constants.FILES_MODEL_COLUMN_TOOLTIP] + "\n" + msg
+                    self._add_tooltip_msg(ii, msg)
                     registered.add(ii)
 
         return found_problem
@@ -124,3 +121,19 @@ class Checker(object):
                 file = parent.get_child_for_display_name(row[1])
                 if file.query_exists():
                     existing_files.add(new_name)
+
+        # mark files
+        msg = "<b>WARNING:</b> Target filename already exists on the filesystem"
+        for uri in existing_files:
+            for idx in self._dict_target_uri_to_indices[uri]:
+                if self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] != gtk.STOCK_DIALOG_ERROR:
+                    self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_WARNING
+                self._add_tooltip_msg(idx, msg)
+                self.highest_problem_level = max(self.highest_problem_level, 1)
+
+
+    def _add_tooltip_msg(self, row_num, msg):
+        if self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
+            self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
+        else:
+            self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] + "\n" + msg
