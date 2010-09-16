@@ -17,7 +17,9 @@
 
 """Preview-like objects need to implement the "preview" function and have
 a "short_description" class member. If it also has a "skip" class member
-which evaluates to True, the class is skipped.
+which evaluates to True, the class is skipped. Optionally, a class may also
+set a priority class member, which affects the sorting order in the combo box.
+If not given, a value of 0.5 is assumed.
 
 The constructor needs to take a refresh func as argument, which must not
 be called during preview (or an endless loop might occur). Also, it should
@@ -35,6 +37,7 @@ class PreviewNoop(object):
 
     short_description = "No change"
     skip = False
+    priority = 0.1
 
     def __init__(self, refresh_func, invalid_func):
         pass
@@ -67,7 +70,8 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
 
     short_description =  "Replace spaces with underscores"
     skip = False
-
+    priority = 0.4
+    
     def __init__(self, refresh_func, invalid_func):
         PreviewTranslate.__init__(self, refresh_func, invalid_func)
         self.set_source_and_target(" ", "_")
@@ -78,6 +82,7 @@ class PreviewReplaceEverySecondWithFixedString(object):
     
     short_description = "Replace with fixed string"
     skip = False
+    priority = 0.8
     
     def __init__(self, refresh_func, invalid_func):
         pass
@@ -95,7 +100,8 @@ class PreviewCircleNames(object):
 
     short_description = "Circle names"
     skip = False
-
+    priority = 0.81
+    
     def __init__(self, refresh_func, invalid_func):
         pass
 

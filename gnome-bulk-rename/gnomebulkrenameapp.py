@@ -395,7 +395,18 @@ class GnomeBulkRenameApp(object):
         
         # builtin
         for preview in self._get_previews_from_model_by_introspection("preview"):
-            previews_model.append((preview.short_description, preview))
+            try:
+                priority = preview.priority
+            except AttributeError:
+                priority = 0.5
+            inserted = False
+            for ii,row in enumerate(previews_model):
+                if row[constants.PREVIEWS_SELECTION_PRIORITY] > priority:
+                    previews_model.insert(ii, (preview.short_description, preview, priority))
+                    inserted = True
+                    break
+            if not inserted:  
+                previews_model.append((preview.short_description, preview, priority))
 
 
     def _get_previews_from_model_by_introspection(self, modulename):
