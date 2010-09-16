@@ -10,6 +10,7 @@ import gtk
 from gnomebulkrenameapp import GnomeBulkRenameApp
 import constants
 
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv

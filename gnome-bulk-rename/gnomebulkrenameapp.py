@@ -17,22 +17,24 @@
 
 import cPickle as pickle
 
-import pygtk
-pygtk.require('2.0')
-import glib
-import gio
-import gtk
-
 import os
 import os.path
 import urllib
 import logging
 import logging.handlers
 
+import pygtk
+pygtk.require('2.0')
+import glib
+import gio
+import gtk
+
 from preview import PreviewNoop
 from markup import MarkupColor
 import check
 import constants
+import rename
+
 
 def clear_gtk_container(container):
     """Remove all children from a GtkContainer"""
@@ -175,7 +177,7 @@ class GnomeBulkRenameApp(object):
         self._collect_previews()
         
         # rename button
-        self._rename_button = gtk.Button("Rename")
+        self._rename_button = gtk.Button("_Rename")
         self._rename_button.connect("clicked", self._on_rename_button_clicked)
         hbox.pack_start(self._rename_button, False)
 
@@ -249,7 +251,19 @@ class GnomeBulkRenameApp(object):
 
 
     def _on_rename_button_clicked(self, button):
-        print 'TODO rename button clicked'
+        self._logger.debug("Starting rename operation")
+        self._checker.clear_all_warnings_and_errors()
+        # TODO throttle on
+        self._files_info_bar.hide()
+        rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
+
+
+    def _on_rename_completed(self, num_renames, num_errors):
+        self._logger.debug("Rename completed")
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors)
+        # TODO throttle off
+
 
 
     def _on_previews_combobox_changed(self, combobox):
@@ -297,14 +311,16 @@ class GnomeBulkRenameApp(object):
         self.refresh()
 
 
-    def refresh(self):
+    def refresh(self, did_just_rename=False):
         """Re-calculate previews"""
         self._current_preview.preview(self._files_model)
         self._current_markup.markup(self._files_model)
 
-        self._checker = check.Checker(self._files_model)
-        self._update_rename_button_sensitivity()
-        self._set_highest_problem_level(self._checker.highest_problem_level)
+        if not did_just_rename:
+            self._checker = check.Checker(self._files_model)
+            self._checker.perform_checks()
+            self._update_rename_button_sensitivity()
+            self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
 
 
     def preview_invalid(self):
@@ -320,20 +336,53 @@ class GnomeBulkRenameApp(object):
         self._rename_button.set_sensitive(sensitive)
 
 
-    def _set_highest_problem_level(self, highest_level):
+    def _on_undo_button_clicked(self, button):
+        print 'undo clicked'
+
+    def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors):
+
+        content_area = self._files_info_bar.get_content_area()
+        clear_gtk_container(content_area)
+        action_area = self._files_info_bar.get_action_area()
+        clear_gtk_container(action_area)
+        
+        hbox = gtk.HBox(False, 4)
+        
+        if num_errors > 0:
+            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR), False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
+            hbox.pack_start(gtk.Label("Problems occured during rename"), False)
+        else:
+            self._files_info_bar.set_message_type(gtk.MESSAGE_INFO)
+            hbox.pack_start(gtk.Label("Files successfully renamed"), False)
+        
+        hbox.show_all()
+        content_area.pack_start(hbox, False)
+        
+        # undo button
+        if num_renames > 0:
+            button = gtk.Button(stock=gtk.STOCK_UNDO)
+            button.connect("clicked", self._on_undo_button_clicked)
+            button.show()
+            action_area.pack_start(button)
+        
+        self._files_info_bar.show()        
+
+
+    def _set_info_bar_according_to_problem_level(self, highest_level):
         
         if highest_level == 0:
             self._files_info_bar.hide()
             return
 
-        # clean up
         content_area = self._files_info_bar.get_content_area()
         clear_gtk_container(content_area)
         action_area = self._files_info_bar.get_action_area()
         clear_gtk_container(action_area)
-            
+
+        hbox = gtk.HBox(False, 4)
+        
         if highest_level == 1:
-            hbox = gtk.HBox(False, 4)
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR))
             hbox.pack_start(gtk.Label("Expect problems when trying to rename"))
             hbox.show_all()
@@ -343,7 +392,6 @@ class GnomeBulkRenameApp(object):
             self._files_info_bar.show()
             
         elif highest_level == 2:
-            hbox = gtk.HBox(False, 4)
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_ERROR, gtk.ICON_SIZE_LARGE_TOOLBAR))
             hbox.pack_start(gtk.Label("Rename not possible"))
             hbox.show_all()

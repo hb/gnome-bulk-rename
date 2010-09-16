@@ -38,16 +38,24 @@ class Checker(object):
         # common data
         self._model = model
 
-        # run tests
-        # these modify the model and/or set the results
-        self._clear_all_warnings_and_errors()
+
+    def clear_all_warnings_and_errors(self):
+        for row in self._model:
+            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = None
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = None
+
+
+    def perform_checks(self):
+        """Run tests. Clears the model first."""
+        self.clear_all_warnings_and_errors()
         self._check_if_all_names_stay_the_same()
+
         # there can't be any problems in this case
         if not self.all_names_stay_the_same:
 
             # more common data
-            self._list_of_source_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[0]) for row in model]
-            self._list_of_target_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]) for row in model]
+            self._list_of_source_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[0]) for row in self._model]
+            self._list_of_target_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]) for row in self._model]
 
             self._dict_source_uri_to_index = {}
             for ii, uri in enumerate(self._list_of_source_uris):
@@ -61,12 +69,7 @@ class Checker(object):
             self._check_for_double_targets()
             self._check_for_circular_renaming()
             self._check_for_already_existing_names()
-
-
-    def _clear_all_warnings_and_errors(self):
-        for row in self._model:
-            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = None
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = None
+        
 
 
     def _check_if_all_names_stay_the_same(self):
