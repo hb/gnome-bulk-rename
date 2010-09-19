@@ -111,3 +111,23 @@ class PreviewCircleNames(object):
         for ii in range(1, len(model)):
             model[ii-1][1] = model[ii][0]
         model[len(model)-1][1] = model[0][0]
+
+
+
+class PreviewToggleSpaceUnderscore(PreviewTranslate):
+    
+    short_description = "Toggle space underscore"
+    skip = False
+    ct = 0
+    
+    def __init__(self, refresh_func, invalid_func):
+        pass
+    
+    def preview(self, model):
+        if (PreviewToggleSpaceUnderscore.ct % 2) == 0:
+            self.set_source_and_target(" ", "_")
+        else:
+            self.set_source_and_target("_", " ")
+        PreviewTranslate.preview(self, model)
+        PreviewToggleSpaceUnderscore.ct += 1
+            

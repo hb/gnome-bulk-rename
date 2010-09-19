@@ -24,7 +24,10 @@ import gtk
 import constants
 
 def _rename(map, done_callback):
-    """map is a list of (GFile, new_display_name, id)"""
+    """map is a list of (GFile, new_display_name, id)
+    
+    This function doesn't care for the id. The caller may store stuff there,
+    to make it easier to recognize the results in the end."""
 
     errors = []             # list of (id, error_message)
     successful_renames = [] # list of (id, gfile)
@@ -57,6 +60,66 @@ def _rename(map, done_callback):
     return cancellables
 
 
+class RenameUndoAction(object):
+    """An object that knows how to undo a previous rename operation"""
+    def __init__(self, successful_renames, model):
+        self._model = model
+        # dictionary id -> (name_before_original_rename, name_after_original_rename, current_gfile)
+        self._data = {}
+        for id, new_gfile in successful_renames:
+            self._data[id] = [self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL], self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW], new_gfile]
+        
+
+    def set_done_callback(self, done_callback):
+        self._done_cb = done_callback
+
+    def undo(self):
+
+        def _rename_done_cb(successful_renames, errors):
+
+            # update the model
+            for id, new_gfile in successful_renames:
+                self._data[id][2] = new_gfile
+                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._data[id][0]  
+                self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = self._data[id][2]
+            for id, error_msg in errors:
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+                
+                del self._data[id]
+            
+            self._done_cb(len(successful_renames), len(errors), self)
+        
+        # set up list
+        list = []
+        for id,vals in self._data.iteritems():
+            list.append((vals[2], vals[0], id))
+        _rename(list, _rename_done_cb)
+        
+
+    def redo(self):
+        
+        def _rename_done_cb(successful_renames, errors):
+
+            # update the model
+            for id, new_gfile in successful_renames:
+                self._data[id][2] = new_gfile
+                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._data[id][1]  
+                self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = self._data[id][2]
+            for id, error_msg in errors:
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+                
+                del self._data[id]
+            
+            self._done_cb(len(successful_renames), len(errors), self)
+        
+        # set up list
+        list = []
+        for id,vals in self._data.iteritems():
+            list.append((vals[2], vals[1], id))
+        _rename(list, _rename_done_cb)
+
 
 class Rename(object):
     """Renames a bunch of files"""
@@ -86,6 +149,9 @@ class Rename(object):
 
         def _rename_done_cb(successful_renames, errors):
 
+            # set up undo action
+            undo_action = RenameUndoAction(successful_renames, self._model)
+            
             # update the model
             for id, new_gfile in successful_renames:
                 self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW]
@@ -95,7 +161,7 @@ class Rename(object):
                 self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
 
             # notify real caller
-            self._done_cb(len(successful_renames), len(errors))
+            self._done_cb(len(successful_renames), len(errors), undo_action)
 
 
         # set up list for _rename

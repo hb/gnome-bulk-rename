@@ -34,6 +34,7 @@ from markup import MarkupColor
 import check
 import constants
 import rename
+import undo
 
 
 def clear_gtk_container(container):
@@ -185,6 +186,9 @@ class GnomeBulkRenameApp(object):
         if uris:
             self._add_to_files_model(uris)
         
+        # undo stack
+        self._undo = undo.Undo() 
+        
         # restore state
         self._restore_state()
         
@@ -258,12 +262,33 @@ class GnomeBulkRenameApp(object):
         rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
 
 
-    def _on_rename_completed(self, num_renames, num_errors):
+    def _on_rename_completed(self, num_renames, num_errors, undo_action):
         self._logger.debug("Rename completed")
+        
+        undo_action.set_done_callback(self._on_undo_rename_completed)
+        self._undo.push(undo_action)
+        
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
         # TODO throttle off
 
+
+    def _on_undo_rename_completed(self, num_renames, num_errors, undo_action):
+        self._logger.debug("Undo rename done")
+        if num_renames > 0:
+            undo_action.set_done_callback(self._on_redo_rename_completed)
+            self._undo.push_to_redo(undo_action)
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, True)
+        
+
+    def _on_redo_rename_completed(self, num_renames, num_errors, undo_action):
+        self._logger.debug("Redo rename done")
+        if num_renames > 0:
+            undo_action.set_done_callback(self._on_undo_rename_completed)
+            self._undo.push(undo_action)
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
 
 
     def _on_previews_combobox_changed(self, combobox):
@@ -315,7 +340,7 @@ class GnomeBulkRenameApp(object):
         """Re-calculate previews"""
         self._current_preview.preview(self._files_model)
         self._current_markup.markup(self._files_model)
-
+        
         if not did_just_rename:
             self._checker = check.Checker(self._files_model)
             self._checker.perform_checks()
@@ -337,9 +362,15 @@ class GnomeBulkRenameApp(object):
 
 
     def _on_undo_button_clicked(self, button):
-        print 'undo clicked'
+        self._logger.debug('undo clicked')
+        self._undo.undo()
 
-    def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors):
+
+    def _on_redo_button_clicked(self, button):
+        self._logger.debug('redo clicked')
+        self._undo.redo()
+
+    def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors, was_undo):
 
         content_area = self._files_info_bar.get_content_area()
         clear_gtk_container(content_area)
@@ -351,20 +382,31 @@ class GnomeBulkRenameApp(object):
         if num_errors > 0:
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR), False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
-            hbox.pack_start(gtk.Label("Problems occured during rename"), False)
+            if not was_undo:
+                hbox.pack_start(gtk.Label("Problems occured during rename"), False)
+            else:
+                hbox.pack_start(gtk.Label("Problems occured during undo"), False)
         else:
             self._files_info_bar.set_message_type(gtk.MESSAGE_INFO)
-            hbox.pack_start(gtk.Label("Files successfully renamed"), False)
+            if not was_undo:
+                hbox.pack_start(gtk.Label("Files successfully renamed"), False)
+            else:
+                hbox.pack_start(gtk.Label("Undo successful"), False)
         
         hbox.show_all()
         content_area.pack_start(hbox, False)
         
         # undo button
         if num_renames > 0:
-            button = gtk.Button(stock=gtk.STOCK_UNDO)
-            button.connect("clicked", self._on_undo_button_clicked)
+            if not was_undo:
+                button = gtk.Button(stock=gtk.STOCK_UNDO)
+                button.connect("clicked", self._on_undo_button_clicked)
+            else:
+                button = gtk.Button(stock=gtk.STOCK_REDO)
+                button.connect("clicked", self._on_redo_button_clicked)
             button.show()
             action_area.pack_start(button)
+                
         
         self._files_info_bar.show()        
 

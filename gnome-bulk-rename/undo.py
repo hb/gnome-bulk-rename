@@ -15,15 +15,15 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-class RenameUndoAction(object):
-    def __init__(self, model):
-        raise NotImplementedError
 
 
-class UndoStack(object):
+class Undo(object):
     """Undo stack for undo-like objects.
 
-    Undo-like objects need to implement the undo and redo member functions."""
+    Undo-like objects need to implement the undo and redo member functions.
+    It doesn't transfer undo objects directly to the redo stack, because
+    they are async, and when undo() returns, it's not yet clear if it
+    should go to the redo stack or not."""
 
     def __init__(self):
         self._undo_stack = []
@@ -31,19 +31,16 @@ class UndoStack(object):
 
     def push(self, action):
         """Action must be an undo-like object"""
-        self._stack.append(action)
+        self._undo_stack.append(action)
         self._redo_stack = []
+
+    def push_to_redo(self, action):
+        self._redo_stack.append(action)
 
     def undo(self):
         action = self._undo_stack.pop()
-        success = action.undo()
-        if success:
-            self._redo_stack.append(action)
-        return success
+        action.undo()
 
     def redo(self):
         action = self._redo_stack.pop()
-        success = action.redo()
-        if success:
-            self._undo_stack.append(action)
-        return success
+        action.redo()
