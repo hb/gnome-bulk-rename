@@ -54,6 +54,11 @@ class GnomeBulkRenameApp(object):
             <placeholder name="FileItems"/>
             <menuitem action="quit"/>
         </menu>
+        <menu action="edit">
+            <placeholder name="EditItems"/>
+            <menuitem action="%(undoaction)s"/>
+            <menuitem action="%(redoaction)s"/>
+        </menu>
         <menu action="help">
             <placeholder name="HelpItems"/>
             <menuitem action="about"/>
@@ -63,7 +68,10 @@ class GnomeBulkRenameApp(object):
       <placeholder name="ToolbarItems"/>
       <toolitem action="quit"/>
     </toolbar>
-    </ui>"""
+    </ui>""" % {
+        "undoaction" : undo.Undo.UNDO_ACTION_NAME,
+        "redoaction" : undo.Undo.REDO_ACTION_NAME,
+        }
 
     
     def __init__(self, uris=None):
@@ -88,17 +96,23 @@ class GnomeBulkRenameApp(object):
         handler.setFormatter(formatter)
         self._logger.addHandler(handler)
         self._logger.debug("init")
+
+        # undo stack
+        self._undo = undo.Undo() 
         
         # actions
         self._uimanager = gtk.UIManager()
         self._action_group = gtk.ActionGroup("mainwindow")
         actions = [("file", None, "_File"),
+                   ("edit", None, "_Edit"),
                    ("view", None, "_View"),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
                    ("about", gtk.STOCK_ABOUT, "About", None, "About this program", self._on_action_about)
                    ]
         self._action_group.add_actions(actions)
+        self._action_group.add_action(self._undo.get_undo_action())
+        self._action_group.add_action(self._undo.get_redo_action())
         self._uimanager.insert_action_group(self._action_group)
         self._uimanager.add_ui_from_string(self.__ui)
 
@@ -185,9 +199,6 @@ class GnomeBulkRenameApp(object):
         # add files
         if uris:
             self._add_to_files_model(uris)
-        
-        # undo stack
-        self._undo = undo.Undo() 
         
         # restore state
         self._restore_state()
