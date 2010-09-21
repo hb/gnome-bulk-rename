@@ -18,6 +18,7 @@
 import cPickle as pickle
 
 import os
+import sys
 import os.path
 import urllib
 import logging
@@ -36,6 +37,8 @@ import constants
 import rename
 import undo
 import gtkutils
+import collect
+import config
 
 
 
@@ -74,24 +77,9 @@ class GnomeBulkRenameApp(object):
     def __init__(self, uris=None):
         """constructor"""
         # application name
-        self._application_name = "gnome-bulk-rename"
-        glib.set_application_name(self._application_name)
+        glib.set_application_name(constants.application_name)
 
-        # config dir
-        self._configdir = os.path.join(glib.get_user_config_dir(), self._application_name)
-
-        # logging
-        logdir = os.path.join(self._configdir, "log")
-        if not os.path.isdir(logdir):
-            os.makedirs(logdir)
-        logfile =  os.path.join(logdir, self._application_name + ".log")
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
-        self._logger.setLevel(logging.DEBUG)
-        handler = logging.handlers.TimedRotatingFileHandler(logfile, 'D', 7, 4)
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s %(name)s [%(levelname)s]: %(message)s")
-        handler.setFormatter(formatter)
-        self._logger.addHandler(handler)
         self._logger.debug("init")
 
         # undo stack
@@ -229,12 +217,12 @@ class GnomeBulkRenameApp(object):
         if idx >= 0:
             state["current_preview_short_description"] = previews_model[idx][0] 
             
-        pickle.dump(state, open(os.path.join(self._configdir, "state"), "w"))
+        pickle.dump(state, open(os.path.join(config.config_dir, "state"), "w"))
 
 
     def _restore_state(self):
         # state restore
-        statesavefilename = os.path.join(self._configdir, "state")
+        statesavefilename = os.path.join(config.config_dir, "state")
         if not os.path.isfile(statesavefilename):
             return
         
@@ -521,7 +509,35 @@ class GnomeBulkRenameApp(object):
         previews_model = self._previews_combobox.get_model()
         
         # builtin
-        for preview in self._get_previews_from_model_by_introspection("preview"):
+        previews = collect.get_previews_from_modulname("preview")
+
+        # user specific
+        if not os.path.isdir(config.user_previewers_dir):
+            try:
+                os.makedirs(config.user_previewers_dir)
+            except OSError:
+                self._logger.debug("Could not create '%s'" % config.user_previewers_dir)
+            else:
+                self._logger.debug("Created '%s'" % config.user_previewers_dir)
+        try:
+            files = os.listdir(config.user_previewers_dir)
+        except OSError:
+            self._logger.warning("Could not list '%s'" % config.user_previewers_dir)
+        else:
+            modules = set()
+            for file in files:
+                if file.endswith(".py"):
+                    modules.add(file[0:-3])
+                elif file.endswith(".pyc"):
+                    modules.add(file[0:-4])
+
+            sys.path.insert(0, config.user_previewers_dir)
+            for modulname in modules:
+                    previews.extend(collect.get_previews_from_modulname(modulname))
+            del sys.path[0]
+
+        # add findings
+        for preview in previews:
             try:
                 priority = preview.priority
             except AttributeError:
@@ -534,29 +550,3 @@ class GnomeBulkRenameApp(object):
                     break
             if not inserted:  
                 previews_model.append((preview.short_description, preview, priority))
-
-
-    def _get_previews_from_model_by_introspection(self, modulename):
-        """Look for previewable objects in the module named modulename"""
-        try:
-            module = __import__(modulename)
-        except ImportError:
-            self._logger.error("Could not import module file: " + modulename)
-            return []
-
-        self._logger.debug("Inspecting module " + modulename)
-        previews = []
-        for entry in dir(module):
-            if entry.startswith("_"):
-                continue
-            classobj = getattr(module, entry)
-            if hasattr(classobj, "preview") and hasattr(classobj, "short_description"):
-                try:
-                    if classobj.skip:
-                        continue
-                except AttributeError:
-                    pass
-                previews.append(classobj)
-
-        self._logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
-        return previews
