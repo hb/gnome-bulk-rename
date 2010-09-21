@@ -35,11 +35,8 @@ import check
 import constants
 import rename
 import undo
+import gtkutils
 
-
-def clear_gtk_container(container):
-    """Remove all children from a GtkContainer"""
-    container.foreach(lambda child, cont : cont.remove(child), container)
 
 
 class GnomeBulkRenameApp(object):
@@ -118,7 +115,8 @@ class GnomeBulkRenameApp(object):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_size_request(500, 300)
+        self._window.set_size_request(500, 800)
+        self._window.set_border_width(5)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
         self._window.add_accel_group(self._uimanager.get_accel_group())
@@ -131,9 +129,12 @@ class GnomeBulkRenameApp(object):
         vbox.pack_start(self._uimanager.get_widget("/Toolbar"), False)
         
         # filename list
+        frame = gtk.Frame()
+        frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        vbox.pack_start(frame, True, True, 4)
         scrolledwin = gtk.ScrolledWindow()
         scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        vbox.pack_start(scrolledwin)       
+        frame.add(scrolledwin)
         self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
         treeview = gtk.TreeView(self._files_model)
         treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
@@ -170,7 +171,7 @@ class GnomeBulkRenameApp(object):
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
 
         # current preview and markup
-        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid)
+        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
         self._current_markup = MarkupColor()
 
         # checker
@@ -195,6 +196,10 @@ class GnomeBulkRenameApp(object):
         self._rename_button = gtk.Button("_Rename")
         self._rename_button.connect("clicked", self._on_rename_button_clicked)
         hbox.pack_start(self._rename_button, False)
+
+        # config area
+        self._config_container = gtk.VBox(False, 0)
+        vbox.pack_start(self._config_container, False)
 
         # add files
         if uris:
@@ -304,7 +309,18 @@ class GnomeBulkRenameApp(object):
 
     def _on_previews_combobox_changed(self, combobox):
         previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_SELECTION_PREVIEW]
-        self._current_preview = previewclass(self.refresh, self.preview_invalid)
+        self._current_preview = previewclass(self.refresh, self.preview_invalid, self._files_model)
+
+        # configuration
+        gtkutils.clear_gtk_container(self._config_container)
+        try:
+            config_widget = self._current_preview.get_config_widget()
+            self._config_container.add(config_widget)
+            self._config_container.show_all()
+        except AttributeError:
+            pass
+
+        # refresh
         self.refresh()
 
 
@@ -349,6 +365,12 @@ class GnomeBulkRenameApp(object):
 
     def refresh(self, did_just_rename=False):
         """Re-calculate previews"""
+        if did_just_rename:
+            try:
+                self._current_preview.post_rename(self._files_model)
+            except AttributeError:
+                pass
+
         self._current_preview.preview(self._files_model)
         self._current_markup.markup(self._files_model)
         
@@ -384,9 +406,9 @@ class GnomeBulkRenameApp(object):
     def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors, was_undo):
 
         content_area = self._files_info_bar.get_content_area()
-        clear_gtk_container(content_area)
+        gtkutils.clear_gtk_container(content_area)
         action_area = self._files_info_bar.get_action_area()
-        clear_gtk_container(action_area)
+        gtkutils.clear_gtk_container(action_area)
         
         hbox = gtk.HBox(False, 4)
         
@@ -429,9 +451,9 @@ class GnomeBulkRenameApp(object):
             return
 
         content_area = self._files_info_bar.get_content_area()
-        clear_gtk_container(content_area)
+        gtkutils.clear_gtk_container(content_area)
         action_area = self._files_info_bar.get_action_area()
-        clear_gtk_container(action_area)
+        gtkutils.clear_gtk_container(action_area)
 
         hbox = gtk.HBox(False, 4)
         
@@ -449,7 +471,7 @@ class GnomeBulkRenameApp(object):
             hbox.pack_start(gtk.Label("Rename not possible"))
             hbox.show_all()
             content_area = self._files_info_bar.get_content_area()
-            clear_gtk_container(content_area)
+            gtkutils.clear_gtk_container(content_area)
             content_area.pack_start(hbox, False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
             self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR)

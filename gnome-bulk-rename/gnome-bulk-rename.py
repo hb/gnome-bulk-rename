@@ -16,6 +16,8 @@ def main(argv=None):
         argv = sys.argv
     parser = OptionParser(usage="%prog", version="%prog " + constants.__version__, description="Bulk rename tool for GNOME")
     (dummy_opt, args) = parser.parse_args(args=argv[1:])
+    
+    gtk.gdk.threads_init()
     app = GnomeBulkRenameApp(args)
     gtk.main()
 
