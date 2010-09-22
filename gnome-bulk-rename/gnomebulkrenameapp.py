@@ -117,9 +117,9 @@ class GnomeBulkRenameAppBase(object):
             self._add_to_files_model(uris)
 
 
-    def refresh(self, did_just_rename=False):
+    def refresh(self, did_just_rename=False, model_changed=False):
         """Re-calculate previews"""
-        if did_just_rename:
+        if did_just_rename or model_changed:
             try:
                 self._current_preview.post_rename(self._files_model)
             except AttributeError:
@@ -213,7 +213,7 @@ class GnomeBulkRenameAppBase(object):
         for file in files_to_add:
             self._files_model.append(file)
 
-        self.refresh()
+        self.refresh(model_changed=True)
 
 
     def _is_file_in_model(self, gfile):

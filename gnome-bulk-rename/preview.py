@@ -166,9 +166,6 @@ class PreviewReplaceLongestSubstring(object):
     def __init__(self, refresh_func, invalid_func, model):
         self._refresh_func = refresh_func
 
-        model.connect("row-deleted", self._on_model_changed)
-        model.connect("row-inserted", self._on_model_changed)
-
         self._longest_common_substring = None
 
         # config widget
