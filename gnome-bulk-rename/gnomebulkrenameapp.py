@@ -125,7 +125,19 @@ class GnomeBulkRenameAppBase(object):
             except AttributeError:
                 pass
 
-        self._current_preview.preview(self._files_model)
+        # preview if valid
+        try:
+            valid = self._current_preview.valid
+        except AttributeError:
+            valid = True
+        
+        if valid:
+            self._current_preview.preview(self._files_model)
+        else:
+            for row in self._files_model:
+                row[1] = row[0]
+                
+        # markup
         self._current_markup.markup(self._files_model)
         
         if not did_just_rename:

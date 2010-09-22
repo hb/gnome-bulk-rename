@@ -32,7 +32,10 @@ which is supposed to return a GtkWidget for the previewer configuration.
 
 An optional post_rename() hook will be called after a rename has been done.
 
-After construction, the preview class is supposed to be in a valid state."""
+After construction, the preview class is supposed to be in a valid state.
+Preview classes can show that they are currently in an invalid state by
+defining a "valid" member variable and assigning it a False value.
+"""
 
 import string
 import difflib
@@ -167,6 +170,7 @@ class PreviewReplaceLongestSubstring(object):
         self._refresh_func = refresh_func
 
         self._longest_common_substring = None
+        self._valid = True
 
         # config widget
         self._config_widget = gtk.HBox(False, 8)
@@ -184,7 +188,6 @@ class PreviewReplaceLongestSubstring(object):
         for row in model:
             row[1] = row[0].replace(self._longest_common_substring, self._replacement_string_entry.get_text())
 
-
     def get_config_widget(self):
         return self._config_widget
 
@@ -194,6 +197,10 @@ class PreviewReplaceLongestSubstring(object):
     def grab_focus(self):
         self._replacement_string_entry.grab_focus()
 
+    @property
+    def valid(self):
+        return self._valid
+
     def _on_replacement_string_entry_changed(self, editable):
         # TODO: sanity check (search for /)
         self._refresh_func()
@@ -201,10 +208,20 @@ class PreviewReplaceLongestSubstring(object):
 
     def _on_model_changed(self, model, path=None, iter=None):
         self._longest_common_substring = long_substr(model)
-        msg = "".join(["Replace the part <b>", self._longest_common_substring, "</b> with"])
+        if len(self._longest_common_substring) < 2:
+            self._valid = False
+            msg = "File names don't have a common substring." 
+        else:
+            self._valid = True
+            msg = "".join(["Replace the part <b>", self._longest_common_substring, "</b> with"])
+        
         self._longest_common_substring_label.set_markup(msg)
-        self._replacement_string_entry.set_text(self._longest_common_substring)
 
+        if not self.valid:
+            self._replacement_string_entry.set_sensitive(False)
+        else:
+            self._replacement_string_entry.set_text(self._longest_common_substring)
+            self._replacement_string_entry.set_sensitive(True)
 
 
 class PreviewCommonModifications(object):
@@ -266,6 +283,14 @@ class PreviewCommonModifications(object):
             self._current_previewer.post_rename(model)
         except AttributeError:
             pass
+
+    @property
+    def valid(self):
+        try:
+            valid = self._current_previewer.valid
+        except AttributeError:
+            valid = True
+        return valid
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
