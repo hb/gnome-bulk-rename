@@ -30,7 +30,7 @@ import glib
 import gio
 import gtk
 
-from preview import PreviewNoop
+from preview import PreviewNoop,PreviewReplaceLongestSubstring
 from markup import MarkupColor
 import check
 import constants
@@ -41,13 +41,349 @@ import collect
 import config
 
 
+#TODO base class logger?
 
-class GnomeBulkRenameApp(object):
+class GnomeBulkRenameAppBase(object):
+    """Base class for bulk renamer frontends"""
+
+    TARGET_TYPE_URI_LIST = 94
+
+    def __init__(self, uris=None):
+
+        # undo stack
+        self._undo = undo.Undo()
+
+        # set up filename list widget with infobar
+        # subclasses can pack this where they want
+        self._file_list_widget = gtk.VBox(False, 0)
+
+        # filename list
+        frame = gtk.Frame()
+        frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
+        self._file_list_widget.pack_start(frame, True, True, 4)
+        scrolledwin = gtk.ScrolledWindow()
+        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        frame.add(scrolledwin)
+        self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
+        treeview = gtk.TreeView(self._files_model)
+        treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                  [('text/uri-list', 0, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
+        treeview.connect("drag-data-received", self._on_drag_data_received)
+        treeview.get_selection().set_mode(gtk.SELECTION_NONE)
+        textrenderer = gtk.CellRendererText()
+        pixbufrenderer = gtk.CellRendererPixbuf()
+        # column "original"
+        column = gtk.TreeViewColumn("original", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL)
+        column.set_expand(True)
+        treeview.append_column(column)
+        # column "preview"
+        column = gtk.TreeViewColumn("preview", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW)
+        column.set_expand(True)
+        treeview.append_column(column)
+        # column icon
+        column = gtk.TreeViewColumn("", pixbufrenderer, stock_id=constants.FILES_MODEL_COLUMN_ICON_STOCK)
+        column.set_expand(False)
+        treeview.append_column(column)
+        # done with columns
+        treeview.set_headers_visible(True)
+        # tooltip
+        treeview.set_tooltip_column(constants.FILES_MODEL_COLUMN_TOOLTIP)
+        scrolledwin.add(treeview)
+        
+        # info bar
+        self._files_info_bar = gtk.InfoBar()
+        self._files_info_bar.connect("response", self._on_files_info_bar_response)
+        self._files_info_bar.set_no_show_all(True)
+        self._file_list_widget.pack_start(self._files_info_bar, False)
+
+        # rename button widget
+        self._rename_button = gtk.Button("_Rename")
+        self._rename_button.connect("clicked", self._on_rename_button_clicked)
+
+        # current preview and markup
+        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
+        self._current_markup = MarkupColor()
+
+        # checker
+        self._checker = None
+
+        # add files
+        if uris:
+            self._add_to_files_model(uris)
+
+
+    def refresh(self, did_just_rename=False):
+        """Re-calculate previews"""
+        if did_just_rename:
+            try:
+                self._current_preview.post_rename(self._files_model)
+            except AttributeError:
+                pass
+
+        self._current_preview.preview(self._files_model)
+        self._current_markup.markup(self._files_model)
+        
+        if not did_just_rename:
+            self._checker = check.Checker(self._files_model)
+            self._checker.perform_checks()
+            self._update_rename_button_sensitivity()
+            self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
+
+
+    def preview_invalid(self):
+        self._rename_button.set_sensitive(False)
+
+
+    def _on_rename_button_clicked(self, button):
+        self._logger.debug("Starting rename operation")
+        self._checker.clear_all_warnings_and_errors()
+        # TODO throttle on
+        self._files_info_bar.hide()
+        rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
+
+
+    def _on_drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
+        """Callback for received drag data"""
+        if target_type == GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST:
+            uris = selection.data.strip("\r\n\x00")
+            uri_splitted = uris.split()
+            self._add_to_files_model(uris.split())
+
+
+    def _on_files_info_bar_response(self, info_bar, response_id):
+        
+        if (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING) or (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR):
+            problems = set()
+            for row in self._files_model:
+                if row[constants.FILES_MODEL_COLUMN_TOOLTIP]:
+                    for entry in row[constants.FILES_MODEL_COLUMN_TOOLTIP].split("\n"):
+                        problems.add(entry)
+            if problems:
+                if response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING:
+                    dlg_type = gtk.MESSAGE_WARNING
+                    msg = "The following problems might prevent renaming:"
+                else:
+                     dlg_type = gtk.MESSAGE_ERROR
+                     msg = "The following problems prevent renaming:" 
+                dlg = gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=gtk.BUTTONS_CLOSE, message_format=msg)
+                dlg.format_secondary_markup("\n".join(problems))
+                dlg.show_all()
+                dlg.run()
+                dlg.destroy()
+
+
+    def _add_to_files_model(self, uris):
+        """Adds a sequence of uris to the files model"""
+        def __get_uri_dirname(gfile):
+            uri = gfile.get_uri()
+            # remove trailing slash
+            if uri[-1] == "/":
+                uri = uri[0:-1]
+            # find last slash
+            idx = uri.rfind("/")
+            if idx != -1:
+                dirname = uri[0:idx]
+            else:
+                raise ValueError
+            return dirname + "/"
+            
+        # checking for doubles
+        files_to_add = []
+        for uri in uris:
+            new_file = gio.File(uri)
+            if self._is_file_in_model(new_file):
+                continue
+            fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
+            if fileinfo:
+                filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
+                try:
+                    dirname = __get_uri_dirname(new_file)
+                except ValueError:
+                    self._logger.error("Cannot add URI because it contains no slash: '%s'" % new_file.get_uri())
+                    continue
+                files_to_add.append([filename, "", "", "", new_file, None, None, dirname])
+
+
+        # add to model
+        for file in files_to_add:
+            self._files_model.append(file)
+
+        self.refresh()
+
+
+    def _is_file_in_model(self, gfile):
+        """Return True if the given gio.File is already in the files model, False otherwise"""
+        for row in self._files_model:
+            if row[constants.FILES_MODEL_COLUMN_GFILE].equal(gfile):
+                return True
+        return False
+
+
+    def _update_rename_button_sensitivity(self):
+        sensitive = True
+
+        if self._checker and ((self._checker.all_names_stay_the_same) or (self._checker.highest_problem_level > 1)):
+            sensitive = False
+
+        self._rename_button.set_sensitive(sensitive)
+
+
+    def _set_info_bar_according_to_problem_level(self, highest_level):
+        
+        if highest_level == 0:
+            self._files_info_bar.hide()
+            return
+
+        content_area = self._files_info_bar.get_content_area()
+        gtkutils.clear_gtk_container(content_area)
+        action_area = self._files_info_bar.get_action_area()
+        gtkutils.clear_gtk_container(action_area)
+
+        hbox = gtk.HBox(False, 4)
+        
+        if highest_level == 1:
+            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR))
+            hbox.pack_start(gtk.Label("Expect problems when trying to rename"))
+            hbox.show_all()
+            content_area.pack_start(hbox, False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
+            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING)
+            self._files_info_bar.show()
+            
+        elif highest_level == 2:
+            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_ERROR, gtk.ICON_SIZE_LARGE_TOOLBAR))
+            hbox.pack_start(gtk.Label("Rename not possible"))
+            hbox.show_all()
+            content_area = self._files_info_bar.get_content_area()
+            gtkutils.clear_gtk_container(content_area)
+            content_area.pack_start(hbox, False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
+            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR)
+            self._files_info_bar.show()
+
+
+    def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors, was_undo):
+
+        content_area = self._files_info_bar.get_content_area()
+        gtkutils.clear_gtk_container(content_area)
+        action_area = self._files_info_bar.get_action_area()
+        gtkutils.clear_gtk_container(action_area)
+        
+        hbox = gtk.HBox(False, 4)
+        
+        if num_errors > 0:
+            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR), False)
+            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
+            if not was_undo:
+                hbox.pack_start(gtk.Label("Problems occured during rename"), False)
+            else:
+                hbox.pack_start(gtk.Label("Problems occured during undo"), False)
+        else:
+            self._files_info_bar.set_message_type(gtk.MESSAGE_INFO)
+            if not was_undo:
+                hbox.pack_start(gtk.Label("Files successfully renamed"), False)
+            else:
+                hbox.pack_start(gtk.Label("Undo successful"), False)
+        
+        hbox.show_all()
+        content_area.pack_start(hbox, False)
+        
+        # undo button
+        if num_renames > 0:
+            if not was_undo:
+                button = gtk.Button(stock=gtk.STOCK_UNDO)
+                button.connect("clicked", self._on_undo_button_clicked)
+            else:
+                button = gtk.Button(stock=gtk.STOCK_REDO)
+                button.connect("clicked", self._on_redo_button_clicked)
+            button.show()
+            action_area.pack_start(button)
+                
+        
+        self._files_info_bar.show()        
+
+
+    def _on_rename_completed(self, num_renames, num_errors, undo_action):
+        self._logger.debug("Rename completed")
+        
+        undo_action.set_done_callback(self._on_undo_rename_completed)
+        self._undo.push(undo_action)
+        
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
+        # TODO throttle off
+
+
+    def _on_undo_rename_completed(self, num_renames, num_errors, undo_action):
+        self._logger.debug("Undo rename done")
+        if num_renames > 0:
+            undo_action.set_done_callback(self._on_redo_rename_completed)
+            self._undo.push_to_redo(undo_action)
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, True)
+        
+
+    def _on_redo_rename_completed(self, num_renames, num_errors, undo_action):
+        self._logger.debug("Redo rename done")
+        if num_renames > 0:
+            undo_action.set_done_callback(self._on_undo_rename_completed)
+            self._undo.push(undo_action)
+        self.refresh(did_just_rename=True)
+        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
+
+
+    def _on_undo_button_clicked(self, button):
+        self._logger.debug('undo clicked')
+        self._undo.undo()
+
+
+    def _on_redo_button_clicked(self, button):
+        self._logger.debug('redo clicked')
+        self._undo.redo()
+
+
+class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
+    """Simplified GNOME bulk rename tool"""
+
+    def __init__(self, uris=None):
+        GnomeBulkRenameAppBase.__init__(self, uris)
+
+        glib.set_application_name(constants.application_name + "-simple")
+
+        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
+        self._logger.debug("init")
+
+        # window
+        self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self._window.set_border_width(5)
+        self._window.connect("destroy", gtk.main_quit)
+        self._window.connect("delete-event", self._on_delete_event)
+
+        # main vbox
+        vbox = gtk.VBox(False, 0)
+        self._window.add(vbox)
+
+        vbox.pack_start(self._file_list_widget)
+
+        self._current_preview = PreviewReplaceLongestSubstring(self.refresh, self.preview_invalid, self._files_model)
+        vbox.pack_start(self._current_preview.get_config_widget(), False)
+
+        self._window.show_all()
+
+
+    def quit(self):
+        self._logger.debug("quit")
+        self._window.destroy()
+
+
+    def _on_delete_event(self, widget, event):
+        self.quit()
+        return True
+
+
+class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     """GNOME bulk rename tool"""
-    
-    
-    TARGET_TYPE_URI_LIST = 80
-    
+        
     __ui = """<ui>
     <menubar name="Menubar">
         <menu action="file">
@@ -76,14 +412,13 @@ class GnomeBulkRenameApp(object):
     
     def __init__(self, uris=None):
         """constructor"""
+        GnomeBulkRenameAppBase.__init__(self, uris)
+
         # application name
         glib.set_application_name(constants.application_name)
 
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
         self._logger.debug("init")
-
-        # undo stack
-        self._undo = undo.Undo() 
         
         # actions
         self._uimanager = gtk.UIManager()
@@ -114,56 +449,13 @@ class GnomeBulkRenameApp(object):
 
         # menu bar
         vbox.pack_start(self._uimanager.get_widget("/Menubar"), False)
-        vbox.pack_start(self._uimanager.get_widget("/Toolbar"), False)
+        vbox.pack_start(self._uimanager.get_widget("/Toolbar"), False)        
         
-        # filename list
-        frame = gtk.Frame()
-        frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        vbox.pack_start(frame, True, True, 4)
-        scrolledwin = gtk.ScrolledWindow()
-        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        frame.add(scrolledwin)
-        self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
-        treeview = gtk.TreeView(self._files_model)
-        treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
-                  [('text/uri-list', 0, GnomeBulkRenameApp.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
-        treeview.connect("drag-data-received", self._on_drag_data_received)
-        treeview.get_selection().set_mode(gtk.SELECTION_NONE)
-        textrenderer = gtk.CellRendererText()
-        pixbufrenderer = gtk.CellRendererPixbuf()
-        # column "original"
-        column = gtk.TreeViewColumn("original", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL)
-        column.set_expand(True)
-        treeview.append_column(column)
-        # column "preview"
-        column = gtk.TreeViewColumn("preview", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW)
-        column.set_expand(True)
-        treeview.append_column(column)
-        # column icon
-        column = gtk.TreeViewColumn("", pixbufrenderer, stock_id=constants.FILES_MODEL_COLUMN_ICON_STOCK)
-        column.set_expand(False)
-        treeview.append_column(column)
-        # done with columns
-        treeview.set_headers_visible(True)
-        # tooltip
-        treeview.set_tooltip_column(constants.FILES_MODEL_COLUMN_TOOLTIP)
-        scrolledwin.add(treeview)
-        
-        # info bar
-        self._files_info_bar = gtk.InfoBar()
-        self._files_info_bar.connect("response", self._on_files_info_bar_response)
-        self._files_info_bar.set_no_show_all(True)
-        vbox.pack_start(self._files_info_bar, False)
+        # add file list widget from base class
+        vbox.pack_start(self._file_list_widget)
 
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
-
-        # current preview and markup
-        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
-        self._current_markup = MarkupColor()
-
-        # checker
-        self._checker = None
 
         # hbox
         hbox = gtk.HBox(False, 4) 
@@ -181,17 +473,11 @@ class GnomeBulkRenameApp(object):
         self._collect_previews()
         
         # rename button
-        self._rename_button = gtk.Button("_Rename")
-        self._rename_button.connect("clicked", self._on_rename_button_clicked)
         hbox.pack_start(self._rename_button, False)
 
         # config area
         self._config_container = gtk.VBox(False, 0)
         vbox.pack_start(self._config_container, False)
-
-        # add files
-        if uris:
-            self._add_to_files_model(uris)
         
         # restore state
         self._restore_state()
@@ -245,6 +531,7 @@ class GnomeBulkRenameApp(object):
 
     def _on_delete_event(self, widget, event):
         self.quit()
+        return True
 
     def _on_action_about(self, dummy=None):
         """Credits dialog"""
@@ -256,43 +543,6 @@ class GnomeBulkRenameApp(object):
         about.set_transient_for(self._window)
         about.connect("response", lambda dlg, unused: dlg.destroy())
         about.show()
-
-
-    def _on_rename_button_clicked(self, button):
-        self._logger.debug("Starting rename operation")
-        self._checker.clear_all_warnings_and_errors()
-        # TODO throttle on
-        self._files_info_bar.hide()
-        rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
-
-
-    def _on_rename_completed(self, num_renames, num_errors, undo_action):
-        self._logger.debug("Rename completed")
-        
-        undo_action.set_done_callback(self._on_undo_rename_completed)
-        self._undo.push(undo_action)
-        
-        self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
-        # TODO throttle off
-
-
-    def _on_undo_rename_completed(self, num_renames, num_errors, undo_action):
-        self._logger.debug("Undo rename done")
-        if num_renames > 0:
-            undo_action.set_done_callback(self._on_redo_rename_completed)
-            self._undo.push_to_redo(undo_action)
-        self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, True)
-        
-
-    def _on_redo_rename_completed(self, num_renames, num_errors, undo_action):
-        self._logger.debug("Redo rename done")
-        if num_renames > 0:
-            undo_action.set_done_callback(self._on_undo_rename_completed)
-            self._undo.push(undo_action)
-        self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
 
 
     def _on_previews_combobox_changed(self, combobox):
@@ -310,198 +560,6 @@ class GnomeBulkRenameApp(object):
 
         # refresh
         self.refresh()
-
-
-    def _add_to_files_model(self, uris):
-        """Adds a sequence of uris to the files model"""
-        def __get_uri_dirname(gfile):
-            uri = gfile.get_uri()
-            # remove trailing slash
-            if uri[-1] == "/":
-                uri = uri[0:-1]
-            # find last slash
-            idx = uri.rfind("/")
-            if idx != -1:
-                dirname = uri[0:idx]
-            else:
-                raise ValueError
-            return dirname + "/"
-            
-        # checking for doubles
-        files_to_add = []
-        for uri in uris:
-            new_file = gio.File(uri)
-            if self._is_file_in_model(new_file):
-                continue
-            fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-            if fileinfo:
-                filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
-                try:
-                    dirname = __get_uri_dirname(new_file)
-                except ValueError:
-                    self._logger.error("Cannot add URI because it contains no slash: '%s'" % new_file.get_uri())
-                    continue
-                files_to_add.append([filename, "", "", "", new_file, None, None, dirname])
-
-
-        # add to model
-        for file in files_to_add:
-            self._files_model.append(file)
-
-        self.refresh()
-
-
-    def refresh(self, did_just_rename=False):
-        """Re-calculate previews"""
-        if did_just_rename:
-            try:
-                self._current_preview.post_rename(self._files_model)
-            except AttributeError:
-                pass
-
-        self._current_preview.preview(self._files_model)
-        self._current_markup.markup(self._files_model)
-        
-        if not did_just_rename:
-            self._checker = check.Checker(self._files_model)
-            self._checker.perform_checks()
-            self._update_rename_button_sensitivity()
-            self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
-
-
-    def preview_invalid(self):
-        self._rename_button.set_sensitive(False)
-
-
-    def _update_rename_button_sensitivity(self):
-        sensitive = True
-
-        if self._checker and ((self._checker.all_names_stay_the_same) or (self._checker.highest_problem_level > 1)):
-            sensitive = False
-
-        self._rename_button.set_sensitive(sensitive)
-
-
-    def _on_undo_button_clicked(self, button):
-        self._logger.debug('undo clicked')
-        self._undo.undo()
-
-
-    def _on_redo_button_clicked(self, button):
-        self._logger.debug('redo clicked')
-        self._undo.redo()
-
-    def _set_info_bar_according_to_rename_operation(self, num_renames, num_errors, was_undo):
-
-        content_area = self._files_info_bar.get_content_area()
-        gtkutils.clear_gtk_container(content_area)
-        action_area = self._files_info_bar.get_action_area()
-        gtkutils.clear_gtk_container(action_area)
-        
-        hbox = gtk.HBox(False, 4)
-        
-        if num_errors > 0:
-            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR), False)
-            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
-            if not was_undo:
-                hbox.pack_start(gtk.Label("Problems occured during rename"), False)
-            else:
-                hbox.pack_start(gtk.Label("Problems occured during undo"), False)
-        else:
-            self._files_info_bar.set_message_type(gtk.MESSAGE_INFO)
-            if not was_undo:
-                hbox.pack_start(gtk.Label("Files successfully renamed"), False)
-            else:
-                hbox.pack_start(gtk.Label("Undo successful"), False)
-        
-        hbox.show_all()
-        content_area.pack_start(hbox, False)
-        
-        # undo button
-        if num_renames > 0:
-            if not was_undo:
-                button = gtk.Button(stock=gtk.STOCK_UNDO)
-                button.connect("clicked", self._on_undo_button_clicked)
-            else:
-                button = gtk.Button(stock=gtk.STOCK_REDO)
-                button.connect("clicked", self._on_redo_button_clicked)
-            button.show()
-            action_area.pack_start(button)
-                
-        
-        self._files_info_bar.show()        
-
-
-    def _set_info_bar_according_to_problem_level(self, highest_level):
-        
-        if highest_level == 0:
-            self._files_info_bar.hide()
-            return
-
-        content_area = self._files_info_bar.get_content_area()
-        gtkutils.clear_gtk_container(content_area)
-        action_area = self._files_info_bar.get_action_area()
-        gtkutils.clear_gtk_container(action_area)
-
-        hbox = gtk.HBox(False, 4)
-        
-        if highest_level == 1:
-            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR))
-            hbox.pack_start(gtk.Label("Expect problems when trying to rename"))
-            hbox.show_all()
-            content_area.pack_start(hbox, False)
-            self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
-            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING)
-            self._files_info_bar.show()
-            
-        elif highest_level == 2:
-            hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_ERROR, gtk.ICON_SIZE_LARGE_TOOLBAR))
-            hbox.pack_start(gtk.Label("Rename not possible"))
-            hbox.show_all()
-            content_area = self._files_info_bar.get_content_area()
-            gtkutils.clear_gtk_container(content_area)
-            content_area.pack_start(hbox, False)
-            self._files_info_bar.set_message_type(gtk.MESSAGE_ERROR)
-            self._files_info_bar.add_button(gtk.STOCK_INFO, constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR)
-            self._files_info_bar.show()
-
-
-    def _on_files_info_bar_response(self, info_bar, response_id):
-        
-        if (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING) or (response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_ERROR):
-            problems = set()
-            for row in self._files_model:
-                if row[constants.FILES_MODEL_COLUMN_TOOLTIP]:
-                    for entry in row[constants.FILES_MODEL_COLUMN_TOOLTIP].split("\n"):
-                        problems.add(entry)
-            if problems:
-                if response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING:
-                    dlg_type = gtk.MESSAGE_WARNING
-                    msg = "The following problems might prevent renaming:"
-                else:
-                     dlg_type = gtk.MESSAGE_ERROR
-                     msg = "The following problems prevent renaming:" 
-                dlg = gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=gtk.BUTTONS_CLOSE, message_format=msg)
-                dlg.format_secondary_markup("\n".join(problems))
-                dlg.show_all()
-                dlg.run()
-                dlg.destroy()
-
-
-    def _is_file_in_model(self, gfile):
-        """Return True if the given gio.File is already in the files model, False otherwise"""
-        for row in self._files_model:
-            if row[constants.FILES_MODEL_COLUMN_GFILE].equal(gfile):
-                return True
-        return False
-
-
-    def _on_drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
-        """Callback for received drag data"""
-        if target_type == GnomeBulkRenameApp.TARGET_TYPE_URI_LIST:
-            uris = selection.data.strip("\r\n\x00")
-            uri_splitted = uris.split()
-            self._add_to_files_model(uris.split())
 
 
     def _collect_previews(self):
