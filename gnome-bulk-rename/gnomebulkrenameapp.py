@@ -66,6 +66,7 @@ class GnomeBulkRenameAppBase(object):
         frame.add(scrolledwin)
         self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
         treeview = gtk.TreeView(self._files_model)
+        treeview.set_size_request(450, 100)
         treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
                   [('text/uri-list', 0, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
         treeview.connect("drag-data-received", self._on_drag_data_received)
@@ -97,7 +98,11 @@ class GnomeBulkRenameAppBase(object):
         self._file_list_widget.pack_start(self._files_info_bar, False)
 
         # rename button widget
-        self._rename_button = gtk.Button("_Rename")
+        self._rename_button = gtk.Button()
+        button_hbox = gtk.HBox(False, 2)
+        button_hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_BUTTON))
+        button_hbox.pack_start(gtk.Label("Rename"))
+        self._rename_button.add(button_hbox)
         self._rename_button.connect("clicked", self._on_rename_button_clicked)
 
         # current preview and markup
@@ -355,6 +360,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self._window.set_title("Bulk Rename")
         self._window.set_border_width(5)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
@@ -363,11 +369,41 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         vbox = gtk.VBox(False, 0)
         self._window.add(vbox)
 
+        # description
+        hbox = gtk.HBox(False, 0)
+        hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG), False)
+        hbox.pack_start(gtk.Label("You can now change the common name part."), False)
+        vbox.pack_start(hbox, False)
+
+        # add file list
         vbox.pack_start(self._file_list_widget)
 
+        # hsep
+        vbox.pack_start(gtk.HSeparator(), False, False, 4)
+
+        # create previewer, and add config
         self._current_preview = PreviewReplaceLongestSubstring(self.refresh, self.preview_invalid, self._files_model)
         vbox.pack_start(self._current_preview.get_config_widget(), False)
+        
+        # hsep
+        vbox.pack_start(gtk.HSeparator(), False, False, 4)
+        
+        # rename and cancel buttons
+        buttonbox = gtk.HButtonBox()
+        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        vbox.pack_start(buttonbox, False)
 
+        cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
+        cancel_button.connect("clicked", lambda button, self : self.quit(), self)
+        buttonbox.add(cancel_button)        
+        buttonbox.add(self._rename_button)
+        
+        
+        try:
+            self._current_preview.grab_focus()
+        except AttributeError:
+            pass
+        
         self._window.show_all()
 
 

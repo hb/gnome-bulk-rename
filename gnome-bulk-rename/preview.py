@@ -191,9 +191,11 @@ class PreviewReplaceLongestSubstring(object):
     def get_config_widget(self):
         return self._config_widget
 
-
     def post_rename(self, model):
         self._on_model_changed(model)
+        
+    def grab_focus(self):
+        self._replacement_string_entry.grab_focus()
 
     def _on_replacement_string_entry_changed(self, editable):
         # TODO: sanity check (search for /)
