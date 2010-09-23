@@ -477,6 +477,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             <placeholder name="EditItems"/>
             <menuitem action="%(undoaction)s"/>
             <menuitem action="%(redoaction)s"/>
+            <separator/>
+            <menuitem action="clear"/>
         </menu>
         <menu action="help">
             <placeholder name="HelpItems"/>
@@ -485,6 +487,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     </menubar>
     <toolbar name="Toolbar">
       <placeholder name="ToolbarItems"/>
+      <toolitem action="clear"/>
       <toolitem action="quit"/>
     </toolbar>
     </ui>""" % {
@@ -509,6 +512,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         actions = [("file", None, "_File"),
                    ("edit", None, "_Edit"),
                    ("view", None, "_View"),
+                   ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
                    ("about", gtk.STOCK_ABOUT, "About", None, "About this program", self._on_action_about)
@@ -608,6 +612,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     break
         self._previews_combobox.set_active(tar)
 
+
+    def _on_action_clear(self, dummy=None):
+        self._files_model.clear()
 
     def _on_action_quit(self, dummy=None):
         self.quit()
