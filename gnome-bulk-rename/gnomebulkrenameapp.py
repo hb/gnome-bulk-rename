@@ -478,6 +478,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             <menuitem action="%(undoaction)s"/>
             <menuitem action="%(redoaction)s"/>
             <separator/>
+            <menuitem action="add"/>
             <menuitem action="clear"/>
         </menu>
         <menu action="help">
@@ -487,6 +488,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     </menubar>
     <toolbar name="Toolbar">
       <placeholder name="ToolbarItems"/>
+      <toolitem action="add"/>
       <toolitem action="clear"/>
       <toolitem action="quit"/>
     </toolbar>
@@ -512,6 +514,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         actions = [("file", None, "_File"),
                    ("edit", None, "_Edit"),
                    ("view", None, "_View"),
+                   ("add", gtk.STOCK_ADD, "Add files", None, "Add files to the list", self._on_action_add),
                    ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
@@ -611,6 +614,19 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     tar = ii
                     break
         self._previews_combobox.set_active(tar)
+
+
+    def _on_action_add(self, dummy=None):
+        dlg = gtk.FileChooserDialog("Add..", self._window, gtk.FILE_CHOOSER_ACTION_OPEN, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        dlg.set_default_response(gtk.RESPONSE_OK)
+        dlg.set_select_multiple(True)
+        response = dlg.run()
+        uris = []
+        if response == gtk.RESPONSE_OK:
+            uris = dlg.get_uris()
+        dlg.destroy()
+        if uris:
+            self._add_to_files_model(uris)
 
 
     def _on_action_clear(self, dummy=None):
