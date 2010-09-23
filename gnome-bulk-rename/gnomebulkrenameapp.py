@@ -479,6 +479,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             <menuitem action="%(redoaction)s"/>
             <separator/>
             <menuitem action="add"/>
+            <menuitem action="addfolders"/>
             <menuitem action="clear"/>
         </menu>
         <menu action="help">
@@ -515,6 +516,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                    ("edit", None, "_Edit"),
                    ("view", None, "_View"),
                    ("add", gtk.STOCK_ADD, "Add files", None, "Add files to the list", self._on_action_add),
+                   ("addfolders", None, "Add folders", None, "Add folders to the list", self._on_action_add_folders),
                    ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
@@ -628,6 +630,45 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         if uris:
             self._add_to_files_model(uris)
 
+
+    def _on_action_add_folders(self, dummy=None):
+        
+        def add_folder_children(folder, uris, include_hidden):
+            for fileinfo in folder.enumerate_children(",".join([gio.FILE_ATTRIBUTE_STANDARD_NAME, gio.FILE_ATTRIBUTE_STANDARD_TYPE, gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN])):
+                child = folder.get_child(fileinfo.get_name())
+                if not include_hidden and fileinfo.get_is_hidden():
+                    continue
+                uris.append(child.get_uri())
+                if fileinfo.get_file_type() == gio.FILE_TYPE_DIRECTORY:
+                    add_folder_children(child, uris, include_hidden)
+        
+        dlg = gtk.FileChooserDialog("Add..", self._window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        dlg.set_default_response(gtk.RESPONSE_OK)
+        dlg.set_select_multiple(True)
+        vbox = gtk.VBox(False, 4)
+        recursive_check = gtk.CheckButton("Select recursively")
+        vbox.pack_start(recursive_check)
+        include_hidden_folders_check = gtk.CheckButton("Include hidden files and folders")
+        vbox.pack_start(include_hidden_folders_check)
+        vbox.show_all()
+        dlg.set_extra_widget(vbox)
+        response = dlg.run()
+        selected_uris = []
+        uris = []
+        include_hidden = include_hidden_folders_check.get_active() 
+        if response == gtk.RESPONSE_OK:
+            selected_uris = dlg.get_uris()
+            for uri in selected_uris:
+                file = gio.File(uri=uri)
+                if not include_hidden and file.query_info(gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN).get_is_hidden():
+                    continue
+                uris.append(uri)
+                if recursive_check.get_active():
+                    add_folder_children(file, uris, include_hidden)
+                    
+        dlg.destroy()
+        if uris:
+            self._add_to_files_model(uris)        
 
     def _on_action_clear(self, dummy=None):
         self._files_model.clear()
