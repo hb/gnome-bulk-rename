@@ -224,6 +224,61 @@ class PreviewReplaceLongestSubstring(object):
             self._replacement_string_entry.set_sensitive(True)
 
 
+class PreviewCommonModificationsSimple(object):
+    """This previewer is intended as a fallback for the longest substring replacement
+    in cases where no such substring exists"""
+    
+    short_description = "Simple common modifications"
+    
+    PREVIEWS_SELECTION_COLUMNS = (str, object)
+
+    def __init__(self, refresh_func, invalid_func, model):
+        self._refresh_func = refresh_func
+        self._invalid_func = invalid_func
+        self._model = model
+
+        self._current_previewer = None
+
+        previewers = [PreviewReplaceSpacesWithUnderscores]
+
+        # config widget
+        previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.PREVIEWS_SELECTION_COLUMNS)
+        previews_combobox = gtk.ComboBox(previews_model)
+        cell = gtk.CellRendererText()
+        previews_combobox.pack_start(cell)
+        previews_combobox.add_attribute(cell, "text", 0)
+        previews_combobox.connect("changed", self._on_previews_combobox_changed)
+        self._config_widget = previews_combobox
+
+        for previewer in previewers:
+            previews_model.append((previewer.short_description, previewer))
+
+        previews_combobox.set_active(0)
+
+
+    def preview(self, model):
+        try:
+            self._current_previewer.preview(model)
+        except AttributeError:
+            pass
+
+
+    def get_config_widget(self):
+        return self._config_widget
+
+    def post_rename(self, model):
+        try:
+            self._current_previewer.post_rename(model)
+        except AttributeError:
+            pass
+
+
+    def _on_previews_combobox_changed(self, combobox):
+        row = combobox.get_model()[combobox.get_active()]
+        self._current_previewer = row[1](self._refresh_func, self._invalid_func, self._model)
+        self._refresh_func()
+
+
 class PreviewCommonModifications(object):
     
     short_description = "Common modifications"
@@ -271,7 +326,6 @@ class PreviewCommonModifications(object):
         try:
             self._current_previewer.preview(model)
         except AttributeError:
-            print 'hhb: att error'
             pass
 
 

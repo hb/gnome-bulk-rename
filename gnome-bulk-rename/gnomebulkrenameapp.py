@@ -23,6 +23,7 @@ import os.path
 import urllib
 import logging
 import logging.handlers
+import subprocess
 
 import pygtk
 pygtk.require('2.0')
@@ -30,7 +31,7 @@ import glib
 import gio
 import gtk
 
-from preview import PreviewNoop,PreviewReplaceLongestSubstring
+from preview import PreviewNoop,PreviewReplaceLongestSubstring, PreviewCommonModificationsSimple
 from markup import MarkupColor
 import check
 import constants
@@ -204,21 +205,29 @@ class GnomeBulkRenameAppBase(object):
                 raise ValueError
             return dirname + "/"
             
-        # checking for doubles
+
+        # get GFiles for uris
+        gfiles = [gio.File(uri) for uri in uris]
+        # make sure they don't refer to identical uris (back and forth for normalization inside GFile)
+        uris = set()
+        for gfile in gfiles:
+            uris.add(gfile.get_uri())
+        gfiles = [gio.File(uri) for uri in uris]
+        
         files_to_add = []
-        for uri in uris:
-            new_file = gio.File(uri)
-            if self._is_file_in_model(new_file):
+        for gfile in gfiles:
+            # checking for already existing files
+            if self._is_file_in_model(gfile):
                 continue
-            fileinfo = new_file.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
+            fileinfo = gfile.query_info(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
                 try:
-                    dirname = __get_uri_dirname(new_file)
+                    dirname = __get_uri_dirname(gfile)
                 except ValueError:
-                    self._logger.error("Cannot add URI because it contains no slash: '%s'" % new_file.get_uri())
+                    self._logger.error("Cannot add URI because it contains no slash: '%s'" % gfile.get_uri())
                     continue
-                files_to_add.append([filename, "", "", "", new_file, None, None, dirname])
+                files_to_add.append([filename, "", "", "", gfile, None, None, dirname])
 
 
         # add to model
@@ -394,20 +403,32 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
 
         # create previewer, and add config
+        # first, try "longest common substring"
         self._current_preview = PreviewReplaceLongestSubstring(self.refresh, self.preview_invalid, self._files_model)
+        # if that doesn't work, offer some common simple modifications
+        if not self._current_preview.valid:
+            self._logger.debug("URIs don't have a common substring, offer simple modifications instead.")
+            self._current_preview = PreviewCommonModificationsSimple(self.refresh, self.preview_invalid, self._files_model)
+        self.refresh()
+        
         vbox.pack_start(self._current_preview.get_config_widget(), False)
         
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
         
-        # rename and cancel buttons
+        # rename, cancel, and more buttons
         buttonbox = gtk.HButtonBox()
         buttonbox.set_layout(gtk.BUTTONBOX_END)
         vbox.pack_start(buttonbox, False)
 
+        advanced_button = gtk.Button("Advanced")
+        advanced_button.connect("clicked", self._on_advanced_button_clicked)
+        buttonbox.add(advanced_button)
+
         cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
         cancel_button.connect("clicked", lambda button, self : self.quit(), self)
         buttonbox.add(cancel_button)        
+
         buttonbox.add(self._rename_button)
         
         
@@ -422,6 +443,20 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
     def quit(self):
         self._logger.debug("quit")
         self._window.destroy()
+
+    def _on_advanced_button_clicked(self, button):
+        cmd = [row[constants.FILES_MODEL_COLUMN_GFILE].get_uri() for row in self._files_model]
+        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename.py") # TODO
+        try:
+            subprocess.Popen(cmd)
+        except OSError, ee:
+            print "Error: '%s' : %s" % (" ".join(cmd), ee)
+            # TODO: Error dialog
+            pass
+        else:
+            self._logger.debug("Executed '%s', will now quit" % " ".join(cmd))
+            self.quit()
+        
 
 
     def _on_delete_event(self, widget, event):
