@@ -181,7 +181,8 @@ class GnomeBulkRenameAppBase(object):
             for row in self._files_model:
                 if row[constants.FILES_MODEL_COLUMN_TOOLTIP]:
                     for entry in row[constants.FILES_MODEL_COLUMN_TOOLTIP].split("\n"):
-                        problems.add(entry)
+                        if entry.startswith("<b>ERROR") or entry.startswith("<b>WARNING"):
+                            problems.add(entry)
             if problems:
                 if response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING:
                     dlg_type = gtk.MESSAGE_WARNING
@@ -535,7 +536,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_size_request(450, 400)
+        self._window.set_size_request(450, 600)
         self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
@@ -733,10 +734,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             self._config_container.remove(child)
         try:
             config_widget = self._current_preview.get_config_widget()
-            self._config_container.add(config_widget)
-            self._config_container.show_all()
         except AttributeError:
-            pass
+            config_widget = gtk.Alignment()
+            config_widget.add(gtk.Label("This mode doesn't have any configuration options."))
+        self._config_container.add(config_widget)
+        self._config_container.show_all()
 
         # refresh
         self.refresh()
