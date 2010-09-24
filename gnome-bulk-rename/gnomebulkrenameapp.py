@@ -388,7 +388,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self._window.set_title("Bulk Rename")
-        self._window.set_border_width(5)
+        self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
 
@@ -425,6 +425,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # rename, cancel, and more buttons
         buttonbox = gtk.HButtonBox()
         buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox.set_spacing(12)
         vbox.pack_start(buttonbox, False)
 
         advanced_button = gtk.Button("Advanced")
@@ -436,7 +437,6 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         buttonbox.add(cancel_button)        
 
         buttonbox.add(self._rename_button)
-        
         
         try:
             self._current_preview.grab_focus()
@@ -535,8 +535,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_size_request(550, 400)
-        self._window.set_border_width(5)
+        self._window.set_size_request(450, 400)
+        self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
         self._window.add_accel_group(self._uimanager.get_accel_group())
@@ -553,29 +553,55 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
-
-        # hbox
-        hbox = gtk.HBox(False, 4) 
-        vbox.pack_start(hbox, False)
         
-        # previews selection
+        # mode selection
+        alignment = gtk.Alignment()
+        alignment.set_padding(6, 0, 0, 0)
+        vbox.pack_start(alignment, False)
+        label = gtk.Label()
+        label.set_markup("<b>Mode:</b>")
+        alignment.add(label)
+        
+        alignment = gtk.Alignment(xscale=1)
+        alignment.set_padding(6, 0, 18, 0)
+        vbox.pack_start(alignment, False)
         previews_model = gtk.ListStore(*constants.PREVIEWS_SELECTION_COLUMNS)
         self._previews_combobox = gtk.ComboBox(previews_model)
         cell = gtk.CellRendererText()
         self._previews_combobox.pack_start(cell, True)
         self._previews_combobox.add_attribute(cell, "text", 0)
         self._previews_combobox.connect("changed", self._on_previews_combobox_changed)
-        hbox.pack_start(self._previews_combobox)
+        alignment.add(self._previews_combobox)
 
         self._collect_previews()
-        
-        # rename button
-        hbox.pack_start(self._rename_button, False)
 
         # config area
-        self._config_container = gtk.VBox(False, 0)
+        alignment = gtk.Alignment()
+        alignment.set_padding(18, 0, 0, 0)
+        vbox.pack_start(alignment, False)
+        label = gtk.Label()
+        label.set_markup("<b>Configuration:</b>")
+        alignment.add(label)
+        
+        self._config_container = gtk.Alignment(xscale=1)
+        self._config_container.set_padding(8, 0, 18, 0)
         vbox.pack_start(self._config_container, False)
         
+        # hsep
+        vbox.pack_start(gtk.HSeparator(), False, False, 4)
+
+        # rename, cancel, and more buttons
+        buttonbox = gtk.HButtonBox()
+        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox.set_spacing(12)
+        vbox.pack_start(buttonbox, False)
+
+        close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
+        close_button.connect("clicked", lambda button, self : self.quit(), self)
+        buttonbox.add(close_button)
+
+        buttonbox.add(self._rename_button)
+
         # restore state
         self._restore_state()
         
@@ -702,7 +728,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._current_preview = previewclass(self.refresh, self.preview_invalid, self._files_model)
 
         # configuration
-        gtkutils.clear_gtk_container(self._config_container)
+        child = self._config_container.get_child()
+        if child:
+            self._config_container.remove(child)
         try:
             config_widget = self._current_preview.get_config_widget()
             self._config_container.add(config_widget)

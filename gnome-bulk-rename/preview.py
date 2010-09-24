@@ -91,6 +91,10 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
         PreviewTranslate.__init__(self, refresh_func, invalid_func, model)
         self.set_source_and_target(" ", "_")
 
+    def get_config_widget(self):
+        hbox = gtk.HBox(False, 0)
+        hbox.pack_start(gtk.Label("This mode doesn't have configuration options."), False)
+        return hbox
 
 class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     
@@ -172,6 +176,7 @@ class PreviewCommonModificationsSimple(object):
     in cases where no such substring exists"""
     
     short_description = "Simple common modifications"
+    skip = True
     
     PREVIEWS_SELECTION_COLUMNS = (str, object)
 
@@ -241,7 +246,7 @@ class PreviewCommonModifications(object):
         previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores]
 
         # config widget
-        self._config_widget = gtk.VBox(False, 0)
+        self._config_widget = gtk.VBox(False, 4)
 
         # subconfig widget
         self._subconfig_widget = gtk.VBox(False, 0)
