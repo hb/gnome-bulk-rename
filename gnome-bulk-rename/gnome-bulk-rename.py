@@ -52,5 +52,5 @@ def main(argv=None):
 if __name__ == "__main__":
     sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/aaaa_usb_stick_claus", "file:///home/hb/aaaa he he ho", "file:///home/hb/menu.doc"])
     #sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/aaaa_usb_stick_claus", "file:///home/hb/aaaa he he ho"])
-    sys.argv.append("--simple")
+    #sys.argv.append("--simple")
     sys.exit(main(sys.argv))

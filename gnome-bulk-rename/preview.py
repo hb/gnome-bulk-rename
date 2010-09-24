@@ -63,21 +63,6 @@ def long_substr(model):
 
 
 
-class PreviewNoop(object):
-    """Source name is identical to target name."""
-
-    short_description = "No change"
-    skip = False
-    priority = 0.1
-
-    def __init__(self, refresh_func, invalid_func, model):
-        pass
-        
-    def preview(self, model):
-        for row in model:
-            row[1] = row[0]
-
-
 class PreviewTranslate(object):
     """General character translation"""
 
@@ -96,7 +81,6 @@ class PreviewTranslate(object):
                 row[1] = row[0].translate(self._translation_table)
 
 
-
 class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
 
     short_description =  "Replace spaces with underscores"
@@ -106,6 +90,7 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
     def __init__(self, refresh_func, invalid_func, model):
         PreviewTranslate.__init__(self, refresh_func, invalid_func, model)
         self.set_source_and_target(" ", "_")
+
 
 class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     
@@ -118,62 +103,6 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
         for row in model:
             row[1] = self._pattern.sub("_", unicode(row[0]))
     
-
-
-class PreviewReplaceEverySecondWithFixedString(object):
-    """Just for testing"""
-    
-    short_description = "Replace with fixed string"
-    skip = False
-    priority = 0.8
-    
-    def __init__(self, refresh_func, invalid_func, model):
-        pass
-    
-    def preview(self, model):
-        for ii,row in enumerate(model):
-            if (ii % 2) == 0:
-                row[1] = "foobar"
-            else:
-                row[1] = row[0]
-
-
-class PreviewCircleNames(object):
-    """Just for testing"""
-
-    short_description = "Circle names"
-    skip = False
-    priority = 0.81
-    
-    def __init__(self, refresh_func, invalid_func, model):
-        pass
-
-    def preview(self, model):
-        if not model:
-            return
-        for ii in range(1, len(model)):
-            model[ii-1][1] = model[ii][0]
-        model[len(model)-1][1] = model[0][0]
-
-
-
-class PreviewToggleSpaceUnderscore(PreviewTranslate):
-    
-    short_description = "Toggle space underscore"
-    skip = False
-    ct = 0
-    
-    def __init__(self, refresh_func, invalid_func, model):
-        pass
-    
-    def preview(self, model):
-        if (PreviewToggleSpaceUnderscore.ct % 2) == 0:
-            self.set_source_and_target(" ", "_")
-        else:
-            self.set_source_and_target("_", " ")
-        PreviewTranslate.preview(self, model)
-        PreviewToggleSpaceUnderscore.ct += 1
-
 
 class PreviewReplaceLongestSubstring(object):
 
@@ -372,3 +301,73 @@ class PreviewCommonModifications(object):
         self._subconfig_widget.show_all()
             
         self._refresh_func()
+
+
+class PreviewNoop(object):
+    """Source name is identical to target name."""
+
+    short_description = "No change"
+    skip = True
+    priority = 0.1
+
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+        
+    def preview(self, model):
+        for row in model:
+            row[1] = row[0]
+
+
+class PreviewReplaceEverySecondWithFixedString(object):
+    """Just for testing"""
+    
+    short_description = "Replace with fixed string"
+    skip = True
+    priority = 0.8
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+    
+    def preview(self, model):
+        for ii,row in enumerate(model):
+            if (ii % 2) == 0:
+                row[1] = "foobar"
+            else:
+                row[1] = row[0]
+
+
+class PreviewCircleNames(object):
+    """Just for testing"""
+
+    short_description = "Circle names"
+    skip = True
+    priority = 0.81
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+
+    def preview(self, model):
+        if not model:
+            return
+        for ii in range(1, len(model)):
+            model[ii-1][1] = model[ii][0]
+        model[len(model)-1][1] = model[0][0]
+
+
+
+class PreviewToggleSpaceUnderscore(PreviewTranslate):
+    
+    short_description = "Toggle space underscore"
+    skip = True
+    ct = 0
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+    
+    def preview(self, model):
+        if (PreviewToggleSpaceUnderscore.ct % 2) == 0:
+            self.set_source_and_target(" ", "_")
+        else:
+            self.set_source_and_target("_", " ")
+        PreviewTranslate.preview(self, model)
+        PreviewToggleSpaceUnderscore.ct += 1
