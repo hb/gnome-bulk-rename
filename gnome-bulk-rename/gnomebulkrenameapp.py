@@ -51,12 +51,25 @@ class GnomeBulkRenameAppBase(object):
 
     def __init__(self, uris=None):
 
+        def files_model_row_deleted_cb(model, path, self):
+            # setting sensitive again happens in the refresh logic
+            if len(model) == 0:
+                self._rename_button.set_sensitive(False)
+
         # undo stack
         self._undo = undo.Undo()
 
         # set up filename list widget with infobar
         # subclasses can pack this where they want
         self._file_list_widget = gtk.VBox(False, 0)
+
+        # rename button widget
+        self._rename_button = gtk.Button()
+        button_hbox = gtk.HBox(False, 2)
+        button_hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_BUTTON))
+        button_hbox.pack_start(gtk.Label("Rename"))
+        self._rename_button.add(button_hbox)
+        self._rename_button.connect("clicked", self._on_rename_button_clicked)
 
         # filename list
         frame = gtk.Frame()
@@ -66,6 +79,7 @@ class GnomeBulkRenameAppBase(object):
         scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         frame.add(scrolledwin)
         self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
+        self._files_model.connect("row-deleted", files_model_row_deleted_cb, self)
         treeview = gtk.TreeView(self._files_model)
         treeview.set_size_request(450, 100)
         treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
@@ -97,14 +111,6 @@ class GnomeBulkRenameAppBase(object):
         self._files_info_bar.connect("response", self._on_files_info_bar_response)
         self._files_info_bar.set_no_show_all(True)
         self._file_list_widget.pack_start(self._files_info_bar, False)
-
-        # rename button widget
-        self._rename_button = gtk.Button()
-        button_hbox = gtk.HBox(False, 2)
-        button_hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_BUTTON))
-        button_hbox.pack_start(gtk.Label("Rename"))
-        self._rename_button.add(button_hbox)
-        self._rename_button.connect("clicked", self._on_rename_button_clicked)
 
         # current preview and markup
         self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
@@ -393,7 +399,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # description
         hbox = gtk.HBox(False, 0)
         hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG), False)
-        hbox.pack_start(gtk.Label("You can now change the common name part."), False)
+        hbox.pack_start(gtk.Label("You can choose among some common rename operations,\nor press the 'Advanced' button for more options."), False)
         vbox.pack_start(hbox, False)
 
         # add file list
@@ -457,7 +463,6 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
             self._logger.debug("Executed '%s', will now quit" % " ".join(cmd))
             self.quit()
         
-
 
     def _on_delete_event(self, widget, event):
         self.quit()
@@ -530,7 +535,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_size_request(500, 800)
+        self._window.set_size_request(550, 400)
         self._window.set_border_width(5)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
