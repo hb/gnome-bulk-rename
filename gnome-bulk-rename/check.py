@@ -42,7 +42,7 @@ class Checker(object):
     def clear_all_warnings_and_errors(self):
         for row in self._model:
             row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = None
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = None
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = row[constants.FILES_MODEL_COLUMN_GFILE].get_uri()
 
 
     def perform_checks(self):
