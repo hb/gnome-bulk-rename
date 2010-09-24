@@ -39,6 +39,8 @@ defining a "valid" member variable and assigning it a False value.
 
 import string
 import difflib
+import re
+
 
 import pygtk
 pygtk.require('2.0')
@@ -104,6 +106,18 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
     def __init__(self, refresh_func, invalid_func, model):
         PreviewTranslate.__init__(self, refresh_func, invalid_func, model)
         self.set_source_and_target(" ", "_")
+
+class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
+    
+    short_description = "Replace all non-alphanumeric characters with underscores"
+
+    def __init__(self, refresh_func, invalid_func, model):
+        self._pattern = re.compile("[^a-zA-Z0-9_.]")
+
+    def preview(self, model):
+        for row in model:
+            row[1] = self._pattern.sub("_", unicode(row[0]))
+    
 
 
 class PreviewReplaceEverySecondWithFixedString(object):
@@ -239,7 +253,7 @@ class PreviewCommonModificationsSimple(object):
 
         self._current_previewer = None
 
-        previewers = [PreviewReplaceSpacesWithUnderscores]
+        previewers = [PreviewReplaceSpacesWithUnderscores,PreviewReplaceAllNonAlphanumericWithUnderscores]
 
         # config widget
         previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.PREVIEWS_SELECTION_COLUMNS)
