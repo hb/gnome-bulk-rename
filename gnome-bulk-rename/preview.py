@@ -219,7 +219,9 @@ class PreviewSearchReplace(object):
                     row[1] = re.sub(self._search_string, replace_string, source_string)
                 else:                 
                     row[1] = source_string.replace(self._search_string, replace_string)
-
+        else:
+            for row in model:
+                row[1] = row[0]
 
     def get_config_widget(self):
         return self._config_widget
@@ -343,7 +345,7 @@ class PreviewCommonModificationsSimple(object):
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
-        self._current_previewer = row[1](self._refresh_func, self._self._model)
+        self._current_previewer = row[1](self._refresh_func, self._model)
         self._refresh_func()
 
 

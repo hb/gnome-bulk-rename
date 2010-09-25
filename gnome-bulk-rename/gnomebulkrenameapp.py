@@ -42,8 +42,6 @@ import collect
 import config
 
 
-#TODO base class logger?
-
 class GnomeBulkRenameAppBase(object):
     """Base class for bulk renamer frontends"""
 
@@ -459,7 +457,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
     def _on_advanced_button_clicked(self, button):
         cmd = [row[constants.FILES_MODEL_COLUMN_GFILE].get_uri() for row in self._files_model]
-        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename.py") # TODO
+        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename3.py") # TODO
         try:
             subprocess.Popen(cmd)
         except OSError, ee:
