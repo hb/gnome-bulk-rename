@@ -520,6 +520,28 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         """constructor"""
         GnomeBulkRenameAppBase.__init__(self, uris)
 
+        def files_model_sort_by_name(model, iter1, iter2):
+            return cmp(model.get(iter1, 0), model.get(iter2, 0))
+
+
+        def sorting_combobox_changed(combobox, files_model, order_check):
+            id = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_ID]
+            if order_check.get_active():
+                order = gtk.SORT_DESCENDING
+            else:
+                order = gtk.SORT_ASCENDING
+            if id == constants.SORT_ID_MANUAL:
+                order_check.set_sensitive(False)
+                files_model.set_sort_column_id(gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
+            else:
+                order_check.set_sensitive(True)
+                files_model.set_sort_column_id(id, order)
+
+
+        def sorting_order_check_toggled(checkbutton, model, combobox):
+            sorting_combobox_changed(combobox, model, checkbutton)
+
+
         # application name
         glib.set_application_name(constants.application_name)
 
@@ -563,6 +585,30 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         vbox.pack_start(self._uimanager.get_widget("/Menubar"), False)
         vbox.pack_start(self._uimanager.get_widget("/Toolbar"), False)        
         
+        # sorting
+        align = gtk.Alignment()
+        align.set_padding(4, 0, 0, 0)
+        vbox.pack_start(align, False)
+        hbox = gtk.HBox(False, 12)
+        align.add(hbox)
+        hbox.pack_start(gtk.Label("Sort"), False)
+        sorting_model = gtk.ListStore(*constants.SORTING_COLUMNS)
+        sorting_model.append(("manually", constants.SORT_ID_MANUAL))
+        sorting_model.append(("by name", constants.SORT_ID_NAME))
+        self._files_model.set_sort_func(constants.SORT_ID_NAME, files_model_sort_by_name)
+        sorting_combobox = gtk.ComboBox(sorting_model)
+        cell = gtk.CellRendererText()
+        sorting_combobox.pack_start(cell, True)
+        sorting_combobox.add_attribute(cell, "text", 0)
+        sorting_combobox.set_active(0)
+        hbox.pack_start(sorting_combobox, False)
+        order_check = gtk.CheckButton("descending")
+        order_check.set_sensitive(False)
+        order_check.connect("toggled", sorting_order_check_toggled, self._files_model, sorting_combobox)
+        hbox.pack_start(order_check, False)
+        sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check)
+        
+
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget)
 
