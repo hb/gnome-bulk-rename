@@ -94,6 +94,10 @@ class GnomeBulkRenameAppBase(object):
         selection.connect("changed", self._on_tree_selection_changed)
         textrenderer = gtk.CellRendererText()
         pixbufrenderer = gtk.CellRendererPixbuf()
+        # column icon
+        column = gtk.TreeViewColumn("", pixbufrenderer, stock_id=constants.FILES_MODEL_COLUMN_ICON_STOCK)
+        column.set_expand(False)
+        treeview.append_column(column)
         # column "original"
         column = gtk.TreeViewColumn("original", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL)
         column.set_expand(True)
@@ -101,10 +105,6 @@ class GnomeBulkRenameAppBase(object):
         # column "preview"
         column = gtk.TreeViewColumn("preview", textrenderer, markup=constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW)
         column.set_expand(True)
-        treeview.append_column(column)
-        # column icon
-        column = gtk.TreeViewColumn("", pixbufrenderer, stock_id=constants.FILES_MODEL_COLUMN_ICON_STOCK)
-        column.set_expand(False)
         treeview.append_column(column)
         # done with columns
         treeview.set_headers_visible(True)
@@ -146,7 +146,7 @@ class GnomeBulkRenameAppBase(object):
                 valid = False
         
         # reset if an error occured or invalid in the first place
-        if not valid:        
+        if not valid:
             for row in self._files_model:
                 row[1] = row[0]
                 
