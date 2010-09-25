@@ -461,9 +461,14 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         try:
             subprocess.Popen(cmd)
         except OSError, ee:
-            print "Error: '%s' : %s" % (" ".join(cmd), ee)
-            # TODO: Error dialog
-            pass
+            self._logger.error("Command invokation failed: '%s'" % "".join(cmd))
+            # open an error dialog
+            dlg = gtk.MessageDialog(self._window, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE)
+            dlg.set_title("Switch failed")
+            dlg.set_markup("<b>Switch to advanced mode failed</b>")
+            dlg.format_secondary_markup("The command '%s' could not be found." % cmd[0])
+            dlg.run()
+            dlg.destroy()
         else:
             self._logger.debug("Executed '%s', will now quit" % " ".join(cmd))
             self.quit()
