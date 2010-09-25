@@ -113,7 +113,7 @@ class GnomeBulkRenameAppBase(object):
         scrolledwin.add(treeview)
         
         # current preview and markup
-        self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
+        self._current_preview = PreviewNoop(self.refresh, self._files_model)
         self._current_markup = MarkupColor()
 
         # checker
@@ -139,8 +139,13 @@ class GnomeBulkRenameAppBase(object):
             valid = True
         
         if valid:
-            self._current_preview.preview(self._files_model)
-        else:
+            try:
+                self._current_preview.preview(self._files_model)
+            except Exception, ee:
+                valid = False
+        
+        # reset if an error occured or invalid in the first place
+        if not valid:        
             for row in self._files_model:
                 row[1] = row[0]
                 
@@ -152,10 +157,6 @@ class GnomeBulkRenameAppBase(object):
             self._checker.perform_checks()
             self._update_rename_button_sensitivity()
             self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
-
-
-    def preview_invalid(self):
-        self._rename_button.set_sensitive(False)
 
 
     def _on_rename_button_clicked(self, button):
@@ -411,11 +412,11 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
         # create previewer, and add config
         # first, try "longest common substring"
-        self._current_preview = PreviewReplaceLongestSubstring(self.refresh, self.preview_invalid, self._files_model)
+        self._current_preview = PreviewReplaceLongestSubstring(self.refresh, self._files_model)
         # if that doesn't work, offer some common simple modifications
         if not self._current_preview.valid:
             self._logger.debug("URIs don't have a common substring, offer simple modifications instead.")
-            self._current_preview = PreviewCommonModificationsSimple(self.refresh, self.preview_invalid, self._files_model)
+            self._current_preview = PreviewCommonModificationsSimple(self.refresh, self._files_model)
         self.refresh()
         
         vbox.pack_start(self._current_preview.get_config_widget(), False)
@@ -731,7 +732,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
     def _on_previews_combobox_changed(self, combobox):
         previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_SELECTION_PREVIEW]
-        self._current_preview = previewclass(self.refresh, self.preview_invalid, self._files_model)
+        self._current_preview = previewclass(self.refresh, self._files_model)
 
         # configuration
         child = self._config_container.get_child()

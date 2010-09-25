@@ -22,10 +22,8 @@ set a priority class member, which affects the sorting order in the combo box.
 If not given, a value of 0.5 is assumed.
 
 The constructor needs to take a refresh func as argument, which must not
-be called during preview (or an endless loop might occur). Also, it should
-only be called when the current preview configuration is sensible.
-The second argument is a function to be called when the preview class'
-configuration is currently invalid. The third argument is the files model.
+be called during preview (or an endless loop might occur).
+The second argument is the files model.
 
 Optionally, a previewer may implement the get_config_widget member function
 which is supposed to return a GtkWidget for the previewer configuration.
@@ -69,7 +67,7 @@ class PreviewTranslate(object):
     short_description = "Character translation"
     skip = True
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._translation_table = None
 
     def set_source_and_target(self, source, target):
@@ -87,8 +85,8 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
     skip = True
     priority = 0.4
     
-    def __init__(self, refresh_func, invalid_func, model):
-        PreviewTranslate.__init__(self, refresh_func, invalid_func, model)
+    def __init__(self, refresh_func, model):
+        PreviewTranslate.__init__(self, refresh_func, model)
         self.set_source_and_target(" ", "_")
 
     def get_config_widget(self):
@@ -101,7 +99,7 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     short_description = "Replace all non-alphanumeric characters with underscores"
     skip = True
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._pattern = re.compile("[^a-zA-Z0-9_.]")
 
     def preview(self, model):
@@ -114,7 +112,7 @@ class PreviewReplaceLongestSubstring(object):
     short_description = "Modify common name part"
     skip = True
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
 
         self._longest_common_substring = None
@@ -178,9 +176,10 @@ class PreviewSearchReplace(object):
     short_description = "Search / replace"
     priority = 0.1
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
-        self._invalid_func = invalid_func
+        
+        self._valid = True
         
         self._config_widget = gtk.Table(2, 3)
         self._config_widget.set_col_spacing(0, 12)
@@ -191,6 +190,7 @@ class PreviewSearchReplace(object):
         self._search_entry = gtk.Entry()
         self._search_entry.connect("changed", self._on_config_changed_cb)
         self._config_widget.attach(self._search_entry, 1, 2, 0, 1)
+        self._search_string = ""
         
         self._config_widget.attach(gtk.Label("Replace with:"), 0, 1, 1, 2, xoptions=gtk.SHRINK)
         self._replace_entry = gtk.Entry()
@@ -205,13 +205,10 @@ class PreviewSearchReplace(object):
         self._regular_expression_check.connect("toggled", self._on_config_changed_cb)
         self._config_widget.attach(self._regular_expression_check, 2, 3, 1, 2)
         
+        
     def preview(self, model):
-        if self._case_insensitive_check.get_active():
-            search_string = self._search_entry.get_text().lower()
-        else:
-            search_string = self._search_entry.get_text()
-        replace_string = self._replace_entry.get_text()
-        if search_string:
+        if self._search_string != "":
+            replace_string = self._replace_entry.get_text()
             for row in model:
                 if self._case_insensitive_check.get_active():
                     source_string = row[0].lower()
@@ -219,9 +216,9 @@ class PreviewSearchReplace(object):
                     source_string = row[0]
 
                 if self._regular_expression_check.get_active():
-                    row[1] = re.sub(search_string, replace_string, source_string)
+                    row[1] = re.sub(self._search_string, replace_string, source_string)
                 else:                 
-                    row[1] = source_string.replace(search_string, replace_string)
+                    row[1] = source_string.replace(self._search_string, replace_string)
 
 
     def get_config_widget(self):
@@ -230,10 +227,30 @@ class PreviewSearchReplace(object):
     
     def grab_focus(self):
         self._search_entry.grab_focus()
-        
+    
+    @property
+    def valid(self):
+        return self._valid
+    
     
     def _on_config_changed_cb(self, dummy):
+        self._check_validity_of_search_string()
         self._refresh_func()
+
+    
+    def _check_validity_of_search_string(self):
+        # get search string
+        if self._case_insensitive_check.get_active():
+            self._search_string = entry.get_text().lower()
+        else:
+            self._search_string = self._search_entry.get_text()
+            
+        self._valid = True
+        if self._regular_expression_check.get_active():
+            try:
+                re.compile(self._search_string)
+            except re.error:
+                self._valid = False
 
 
 class PreviewToUpper(object):
@@ -241,7 +258,7 @@ class PreviewToUpper(object):
     short_description = "Convert to upper case"
     skip = True
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
     
     def preview(self, model):
@@ -254,7 +271,7 @@ class PreviewToLower(object):
     short_description = "Convert to lower case"
     skip = True
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
     
     def preview(self, model):
@@ -267,7 +284,7 @@ class PreviewToTitle(object):
     short_description = "Convert to title case"
     skip = True
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
     
     def preview(self, model):
@@ -284,9 +301,8 @@ class PreviewCommonModificationsSimple(object):
     
     PREVIEWS_SELECTION_COLUMNS = (str, object)
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
-        self._invalid_func = invalid_func
         self._model = model
 
         self._current_previewer = None
@@ -327,7 +343,7 @@ class PreviewCommonModificationsSimple(object):
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
-        self._current_previewer = row[1](self._refresh_func, self._invalid_func, self._model)
+        self._current_previewer = row[1](self._refresh_func, self._self._model)
         self._refresh_func()
 
 
@@ -339,9 +355,8 @@ class PreviewCommonModifications(object):
     PREVIEWS_SELECTION_COLUMN_SHORT_DESCRIPTION = 0
     PREVIEWS_SELECTION_COLUMN_PREVIEW = 1
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
-        self._invalid_func = invalid_func
         self._model = model
 
         self._current_previewer = None
@@ -401,7 +416,7 @@ class PreviewCommonModifications(object):
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
         gtkutils.clear_gtk_container(self._subconfig_widget)
-        self._current_previewer = row[1](self._refresh_func, self._invalid_func, self._model)
+        self._current_previewer = row[1](self._refresh_func, self._model)
         try:
             self._subconfig_widget.pack_start(self._current_previewer.get_config_widget())
         except AttributeError:
@@ -419,7 +434,7 @@ class PreviewNoop(object):
     skip = True
     priority = 0.11
 
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
         
     def preview(self, model):
@@ -434,7 +449,7 @@ class PreviewReplaceEverySecondWithFixedString(object):
     skip = True
     priority = 0.8
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
     
     def preview(self, model):
@@ -452,7 +467,7 @@ class PreviewCircleNames(object):
     skip = True
     priority = 0.81
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
 
     def preview(self, model):
@@ -470,7 +485,7 @@ class PreviewToggleSpaceUnderscore(PreviewTranslate):
     skip = True
     ct = 0
     
-    def __init__(self, refresh_func, invalid_func, model):
+    def __init__(self, refresh_func, model):
         pass
     
     def preview(self, model):
