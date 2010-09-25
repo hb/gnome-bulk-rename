@@ -196,7 +196,6 @@ class PreviewSearchReplace(object):
         self._config_widget.attach(self._replace_entry, 1, 2, 1, 2)
         
         
-    
     def preview(self, model):
         search_string = self._search_entry.get_text()
         replace_string = self._replace_entry.get_text()
@@ -208,6 +207,10 @@ class PreviewSearchReplace(object):
     def get_config_widget(self):
         return self._config_widget
     
+    
+    def grab_focus(self):
+        self._search_entry.grab_focus()
+        
     
     def _on_entry_changed_cb(self, editable):
         self._refresh_func()

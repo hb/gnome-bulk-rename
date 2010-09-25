@@ -606,6 +606,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         # restore state
         self._restore_state()
         
+        try:
+            self._current_preview.grab_focus()
+        except AttributeError:
+            pass
+        
         # show everything
         self._window.show_all()
 
