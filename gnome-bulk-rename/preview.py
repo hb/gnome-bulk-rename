@@ -235,6 +235,46 @@ class PreviewSearchReplace(object):
     def _on_config_changed_cb(self, dummy):
         self._refresh_func()
 
+
+class PreviewToUpper(object):
+    
+    short_description = "Convert to upper case"
+    skip = True
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+    
+    def preview(self, model):
+        for row in model:
+            row[1] = row[0].upper()
+
+
+class PreviewToLower(object):
+    
+    short_description = "Convert to lower case"
+    skip = True
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+    
+    def preview(self, model):
+        for row in model:
+            row[1] = row[0].lower()
+
+
+class PreviewToTitle(object):
+    
+    short_description = "Convert to title case"
+    skip = True
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        pass
+    
+    def preview(self, model):
+        for row in model:
+            row[1] = row[0].title()
+
+
 class PreviewCommonModificationsSimple(object):
     """This previewer is intended as a fallback for the longest substring replacement
     in cases where no such substring exists"""
@@ -251,7 +291,7 @@ class PreviewCommonModificationsSimple(object):
 
         self._current_previewer = None
 
-        previewers = [PreviewReplaceSpacesWithUnderscores,PreviewReplaceAllNonAlphanumericWithUnderscores]
+        previewers = [PreviewReplaceSpacesWithUnderscores,PreviewReplaceAllNonAlphanumericWithUnderscores,PreviewToUpper,PreviewToLower,PreviewToTitle]
 
         # config widget
         previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.PREVIEWS_SELECTION_COLUMNS)
@@ -307,7 +347,7 @@ class PreviewCommonModifications(object):
         self._current_previewer = None
 
         # which previewers should be in the common block?
-        previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores, PreviewReplaceAllNonAlphanumericWithUnderscores]
+        previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores, PreviewReplaceAllNonAlphanumericWithUnderscores,PreviewToUpper,PreviewToLower,PreviewToTitle]
 
         # config widget
         self._config_widget = gtk.VBox(False, 4)
