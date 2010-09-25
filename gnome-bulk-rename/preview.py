@@ -183,25 +183,44 @@ class PreviewSearchReplace(object):
         
         self._config_widget = gtk.Table(2, 3)
         self._config_widget.set_col_spacing(0, 12)
+        self._config_widget.set_col_spacing(1, 12)
         self._config_widget.set_row_spacings(4)
 
         self._config_widget.attach(gtk.Label("Search for:"), 0, 1, 0, 1, xoptions=gtk.SHRINK)
         self._search_entry = gtk.Entry()
-        self._search_entry.connect("changed", self._on_entry_changed_cb)
+        self._search_entry.connect("changed", self._on_config_changed_cb)
         self._config_widget.attach(self._search_entry, 1, 2, 0, 1)
         
         self._config_widget.attach(gtk.Label("Replace with:"), 0, 1, 1, 2, xoptions=gtk.SHRINK)
         self._replace_entry = gtk.Entry()
-        self._replace_entry.connect("changed", self._on_entry_changed_cb)
+        self._replace_entry.connect("changed", self._on_config_changed_cb)
         self._config_widget.attach(self._replace_entry, 1, 2, 1, 2)
         
+        self._case_insensitive_check = gtk.CheckButton("Case insensitive")
+        self._case_insensitive_check.connect("toggled", self._on_config_changed_cb)
+        self._config_widget.attach(self._case_insensitive_check, 2, 3, 0, 1)
+
+        self._regular_expression_check = gtk.CheckButton("Regular expressions")
+        self._regular_expression_check.connect("toggled", self._on_config_changed_cb)
+        self._config_widget.attach(self._regular_expression_check, 2, 3, 1, 2)
         
     def preview(self, model):
-        search_string = self._search_entry.get_text()
+        if self._case_insensitive_check.get_active():
+            search_string = self._search_entry.get_text().lower()
+        else:
+            search_string = self._search_entry.get_text()
         replace_string = self._replace_entry.get_text()
         if search_string:
             for row in model:
-                row[1] = row[0].replace(search_string, replace_string)
+                if self._case_insensitive_check.get_active():
+                    source_string = row[0].lower()
+                else:
+                    source_string = row[0]
+
+                if self._regular_expression_check.get_active():
+                    row[1] = re.sub(search_string, replace_string, source_string)
+                else:                 
+                    row[1] = source_string.replace(search_string, replace_string)
 
 
     def get_config_widget(self):
@@ -212,7 +231,7 @@ class PreviewSearchReplace(object):
         self._search_entry.grab_focus()
         
     
-    def _on_entry_changed_cb(self, editable):
+    def _on_config_changed_cb(self, dummy):
         self._refresh_func()
 
 class PreviewCommonModificationsSimple(object):
