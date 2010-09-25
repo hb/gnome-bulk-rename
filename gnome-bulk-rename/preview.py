@@ -99,6 +99,7 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
 class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     
     short_description = "Replace all non-alphanumeric characters with underscores"
+    skip = True
 
     def __init__(self, refresh_func, invalid_func, model):
         self._pattern = re.compile("[^a-zA-Z0-9_.]")
@@ -292,7 +293,7 @@ class PreviewCommonModificationsSimple(object):
 
 class PreviewCommonModifications(object):
     
-    short_description = "Common modifications"
+    short_description = "Common specialized modifications"
 
     PREVIEWS_SELECTION_COLUMNS = (str, object)
     PREVIEWS_SELECTION_COLUMN_SHORT_DESCRIPTION = 0
@@ -306,7 +307,7 @@ class PreviewCommonModifications(object):
         self._current_previewer = None
 
         # which previewers should be in the common block?
-        previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores]
+        previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores, PreviewReplaceAllNonAlphanumericWithUnderscores]
 
         # config widget
         self._config_widget = gtk.VBox(False, 4)
