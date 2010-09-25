@@ -91,7 +91,9 @@ class GnomeBulkRenameAppBase(object):
         treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
                   [('text/uri-list', 0, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
         treeview.connect("drag-data-received", self._on_drag_data_received)
-        treeview.get_selection().set_mode(gtk.SELECTION_NONE)
+        selection = treeview.get_selection()
+        selection.set_mode(gtk.SELECTION_MULTIPLE)
+        selection.connect("changed", self._on_tree_selection_changed)
         textrenderer = gtk.CellRendererText()
         pixbufrenderer = gtk.CellRendererPixbuf()
         # column "original"
@@ -111,6 +113,7 @@ class GnomeBulkRenameAppBase(object):
         # tooltip
         treeview.set_tooltip_column(constants.FILES_MODEL_COLUMN_TOOLTIP)
         scrolledwin.add(treeview)
+        self._files_treeview = treeview
         
         # current preview and markup
         self._current_preview = PreviewNoop(self.refresh, self._files_model)
@@ -158,6 +161,8 @@ class GnomeBulkRenameAppBase(object):
             self._update_rename_button_sensitivity()
             self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
 
+    def _on_tree_selection_changed(self, selection):
+        self._remove_action.set_sensitive(selection.count_selected_rows() > 0)
 
     def _on_rename_button_clicked(self, button):
         self._logger.debug("Starting rename operation")
@@ -487,6 +492,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             <separator/>
             <menuitem action="add"/>
             <menuitem action="addfolders"/>
+            <menuitem action="remove"/>
             <menuitem action="clear"/>
         </menu>
         <menu action="help">
@@ -497,6 +503,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     <toolbar name="Toolbar">
       <placeholder name="ToolbarItems"/>
       <toolitem action="add"/>
+      <toolitem action="remove"/>
       <toolitem action="clear"/>
       <toolitem action="quit"/>
     </toolbar>
@@ -524,6 +531,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                    ("view", None, "_View"),
                    ("add", gtk.STOCK_ADD, "Add files", None, "Add files to the list", self._on_action_add),
                    ("addfolders", None, "Add folders", None, "Add folders to the list", self._on_action_add_folders),
+                   ("remove", gtk.STOCK_REMOVE, "Remove files", None, "Remove selected files from the list", self._on_action_remove),
                    ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
@@ -534,6 +542,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._action_group.add_action(self._undo.get_redo_action())
         self._uimanager.insert_action_group(self._action_group)
         self._uimanager.add_ui_from_string(self.__ui)
+        self._remove_action = self._action_group.get_action("remove")
+        self._remove_action.set_sensitive(False)
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -708,8 +718,18 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         if uris:
             self._add_to_files_model(uris)        
 
+    def _on_action_remove(self, dummy=None):
+        selection = self._files_treeview.get_selection()
+        (model, selected) = selection.get_selected_rows()
+        iters = [model.get_iter(path) for path in selected]
+        for iter in iters:
+            model.remove(iter)
+        self.refresh(model_changed=True)
+
+
     def _on_action_clear(self, dummy=None):
         self._files_model.clear()
+        self.refresh(model_changed=True)
 
     def _on_action_quit(self, dummy=None):
         self.quit()
