@@ -171,6 +171,47 @@ class PreviewReplaceLongestSubstring(object):
             self._replacement_string_entry.set_sensitive(True)
 
 
+class PreviewSearchReplace(object):
+    """Search/replace previewer"""
+    
+    short_description = "Search / replace"
+    priority = 0.1
+    
+    def __init__(self, refresh_func, invalid_func, model):
+        self._refresh_func = refresh_func
+        self._invalid_func = invalid_func
+        
+        self._config_widget = gtk.Table(2, 3)
+        self._config_widget.set_col_spacing(0, 12)
+        self._config_widget.set_row_spacings(4)
+
+        self._config_widget.attach(gtk.Label("Search for:"), 0, 1, 0, 1, xoptions=gtk.SHRINK)
+        self._search_entry = gtk.Entry()
+        self._search_entry.connect("changed", self._on_entry_changed_cb)
+        self._config_widget.attach(self._search_entry, 1, 2, 0, 1)
+        
+        self._config_widget.attach(gtk.Label("Replace with:"), 0, 1, 1, 2, xoptions=gtk.SHRINK)
+        self._replace_entry = gtk.Entry()
+        self._replace_entry.connect("changed", self._on_entry_changed_cb)
+        self._config_widget.attach(self._replace_entry, 1, 2, 1, 2)
+        
+        
+    
+    def preview(self, model):
+        search_string = self._search_entry.get_text()
+        replace_string = self._replace_entry.get_text()
+        if search_string:
+            for row in model:
+                row[1] = row[0].replace(search_string, replace_string)
+
+
+    def get_config_widget(self):
+        return self._config_widget
+    
+    
+    def _on_entry_changed_cb(self, editable):
+        self._refresh_func()
+
 class PreviewCommonModificationsSimple(object):
     """This previewer is intended as a fallback for the longest substring replacement
     in cases where no such substring exists"""
@@ -313,7 +354,7 @@ class PreviewNoop(object):
 
     short_description = "No change"
     skip = True
-    priority = 0.1
+    priority = 0.11
 
     def __init__(self, refresh_func, invalid_func, model):
         pass

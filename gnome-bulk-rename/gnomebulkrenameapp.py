@@ -71,6 +71,12 @@ class GnomeBulkRenameAppBase(object):
         self._rename_button.add(button_hbox)
         self._rename_button.connect("clicked", self._on_rename_button_clicked)
 
+        # info bar
+        self._files_info_bar = gtk.InfoBar()
+        self._files_info_bar.connect("response", self._on_files_info_bar_response)
+        self._files_info_bar.set_no_show_all(True)
+        self._file_list_widget.pack_start(self._files_info_bar, False)
+
         # filename list
         frame = gtk.Frame()
         frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
@@ -106,12 +112,6 @@ class GnomeBulkRenameAppBase(object):
         treeview.set_tooltip_column(constants.FILES_MODEL_COLUMN_TOOLTIP)
         scrolledwin.add(treeview)
         
-        # info bar
-        self._files_info_bar = gtk.InfoBar()
-        self._files_info_bar.connect("response", self._on_files_info_bar_response)
-        self._files_info_bar.set_no_show_all(True)
-        self._file_list_widget.pack_start(self._files_info_bar, False)
-
         # current preview and markup
         self._current_preview = PreviewNoop(self.refresh, self.preview_invalid, self._files_model)
         self._current_markup = MarkupColor()
