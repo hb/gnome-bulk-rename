@@ -66,10 +66,10 @@ class Checker(object):
                 self._dict_target_uri_to_indices.setdefault(uri, []).append(ii)                    
             
             # checks
+            self._check_for_empty_targets()
             self._check_for_double_targets()
             self._check_for_circular_renaming()
             self._check_for_already_existing_names()
-        
 
 
     def _check_if_all_names_stay_the_same(self):
@@ -79,6 +79,15 @@ class Checker(object):
         self._all_names_stay_the_same = True
 
 
+    def _check_for_empty_targets(self):
+        msg = "<b>ERROR:</b> Empty target name"
+        for ii,row in enumerate(self._model):
+            if row[1] == "":
+                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self.highest_problem_level = max(self.highest_problem_level, 2)
+                self._add_tooltip_msg(ii, msg)
+                    
+                    
     def _check_for_double_targets(self):
         """Sets pixbuf and tooltip text. Returns True if double targets exist"""
         double_uris = []
@@ -116,7 +125,7 @@ class Checker(object):
         """Check if a target name already exists on the file system, but is not a circular rename"""
         existing_files = set()
         for row in self._model:
-            if row[0] == row[1]:
+            if row[0] == row[1] or not row[1]:
                 continue
             new_name = row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]
             if new_name not in self.circular_uris:
