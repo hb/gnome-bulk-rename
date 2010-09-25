@@ -67,6 +67,7 @@ class Checker(object):
             
             # checks
             self._check_for_empty_targets()
+            self._check_slash_in_target()
             self._check_for_double_targets()
             self._check_for_circular_renaming()
             self._check_for_already_existing_names()
@@ -87,6 +88,14 @@ class Checker(object):
                 self.highest_problem_level = max(self.highest_problem_level, 2)
                 self._add_tooltip_msg(ii, msg)
                     
+    def _check_slash_in_target(self):
+        msg = "<b>ERROR:</b> Slash in target name"
+        for ii,row in enumerate(self._model):
+            if "/" in row[1]:
+                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self.highest_problem_level = max(self.highest_problem_level, 2)
+                self._add_tooltip_msg(ii, msg)
+        
                     
     def _check_for_double_targets(self):
         """Sets pixbuf and tooltip text. Returns True if double targets exist"""
