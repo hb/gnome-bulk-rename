@@ -523,21 +523,28 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         """constructor"""
         GnomeBulkRenameAppBase.__init__(self, uris)
 
-        def sorting_combobox_changed(combobox, files_model, order_check):
+        def sorting_combobox_changed(combobox, files_model, order_check, config_container):
             id = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_ID]
+            instance = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_INSTANCE]
             if order_check.get_active():
                 order = gtk.SORT_DESCENDING
             else:
                 order = gtk.SORT_ASCENDING
+
+            gtkutils.clear_gtk_container(config_container)
+
             if id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
                 files_model.set_sort_column_id(gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
             else:
                 order_check.set_sensitive(True)
+                if hasattr(inst, "get_config_widget"):
+                    config_container.pack_start(inst.get_config_widget(), False)
+                    config_container.show_all()
                 files_model.set_sort_column_id(id, order)
 
-        def sorting_order_check_toggled(checkbutton, model, combobox):
-            sorting_combobox_changed(combobox, model, checkbutton)
+        def sorting_order_check_toggled(checkbutton, model, combobox, config_container):
+            sorting_combobox_changed(combobox, model, checkbutton, config_container)
 
 
         # application name
@@ -591,11 +598,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         align.add(hbox)
         hbox.pack_start(gtk.Label("Sort"), False)
         sorting_model = gtk.ListStore(*constants.SORTING_COLUMNS)
-        sorting_model.append(("manually", constants.SORT_ID_MANUAL))
+        sorting_model.append(("manually", constants.SORT_ID_MANUAL, None))
         
         for ii,sort in enumerate(collect.get_sort_from_modulename("sort")):
-            inst = sort()
-            sorting_model.append((inst.short_description, ii+1))
+            inst = sort(self._files_model)
+            sorting_model.append((inst.short_description, ii+1, inst))
             self._files_model.set_sort_func(ii+1, inst.sort)
         
         sorting_combobox = gtk.ComboBox(sorting_model)
@@ -606,9 +613,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox.pack_start(sorting_combobox, False)
         order_check = gtk.CheckButton("descending")
         order_check.set_sensitive(False)
-        order_check.connect("toggled", sorting_order_check_toggled, self._files_model, sorting_combobox)
+        sort_config_container = gtk.HBox(False, 0)
+        order_check.connect("toggled", sorting_order_check_toggled, self._files_model, sorting_combobox, sort_config_container)
         hbox.pack_start(order_check, False)
-        sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check)
+        hbox.pack_start(sort_config_container, True)
+        sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check, sort_config_container)
         
 
         # add file list widget from base class

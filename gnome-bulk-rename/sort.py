@@ -17,9 +17,41 @@
 
 """Sorting of the files model"""
 
+import pygtk
+pygtk.require('2.0')
+import gtk
+
+
 class ByName(object):
     
     short_description = "by name"
+    
+    def __init__(self, treesortable):
+        self._treesortable = treesortable
+
+        case_check = gtk.CheckButton("Case sensitive")
+        case_check.set_active(True)
+        case_check.connect("toggled", self._on_case_check_toggled)
+        self._config_widget = case_check
+        
+        self._case_sensitive = True
+
 
     def sort(self, model, iter1, iter2):
-        return cmp(model.get(iter1, 0), model.get(iter2, 0))
+        if self._case_sensitive:
+            return cmp(model.get(iter1, 0)[0], model.get(iter2, 0)[0])
+        else:
+            return cmp(model.get(iter1, 0)[0].lower(), model.get(iter2, 0)[0].lower())
+
+
+    def get_config_widget(self):
+        return self._config_widget
+
+
+    def _on_case_check_toggled(self, checkbutton):
+        self._case_sensitive = checkbutton.get_active()
+
+        # trigger re-sort
+        old_id_and_order = self._treesortable.get_sort_column_id()
+        self._treesortable.set_sort_column_id(gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, gtk.SORT_DESCENDING)
+        self._treesortable.set_sort_column_id(*old_id_and_order)
