@@ -40,6 +40,7 @@ import undo
 import gtkutils
 import collect
 import config
+import preferences
 
 
 class GnomeBulkRenameAppBase(object):
@@ -395,7 +396,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_title("Bulk Rename")
+        self._window.set_title("Simple Bulk Rename")
         self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
@@ -500,6 +501,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             <menuitem action="addfolders"/>
             <menuitem action="remove"/>
             <menuitem action="clear"/>
+            <separator/>
+            <menuitem action="preferences"/>
         </menu>
         <menu action="help">
             <placeholder name="HelpItems"/>
@@ -511,6 +514,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
       <toolitem action="add"/>
       <toolitem action="remove"/>
       <toolitem action="clear"/>
+      <toolitem action="preferences"/>
       <toolitem action="quit"/>
     </toolbar>
     </ui>""" % {
@@ -563,6 +567,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                    ("addfolders", None, "Add folders", None, "Add folders to the list", self._on_action_add_folders),
                    ("remove", gtk.STOCK_REMOVE, "Remove files", None, "Remove selected files from the list", self._on_action_remove),
                    ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
+                   ("preferences", gtk.STOCK_PREFERENCES, "Preferences", None, "Preferences", self._on_action_preferences),
                    ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
                    ("help", None, "_Help"),
                    ("about", gtk.STOCK_ABOUT, "About", None, "About this program", self._on_action_about)
@@ -577,6 +582,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self._window.set_title("Bulk Rename")
         self._window.set_size_request(450, 600)
         self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
@@ -618,7 +624,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox.pack_start(order_check, False)
         hbox.pack_start(sort_config_container, True)
         sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check, sort_config_container)
-        
 
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget)
@@ -790,6 +795,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     def _on_action_clear(self, dummy=None):
         self._files_model.clear()
         self.refresh(model_changed=True)
+
+    def _on_action_preferences(self, dummy=None):
+        prefswindow = preferences.Window()
+        prefswindow.show_all()
 
     def _on_action_quit(self, dummy=None):
         self.quit()
