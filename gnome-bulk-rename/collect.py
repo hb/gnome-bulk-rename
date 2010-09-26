@@ -63,8 +63,12 @@ def get_previews_from_modulname(modulname, model=None):
             skip = preview.skip
         except AttributeError:
             skip = False
-
-        model.append((preview.short_description, preview, priority, not skip))
+        
+        if skip:
+            markup = "".join(['<span color="gray">', preview.short_description, '</span>'])
+        else:
+            markup = preview.short_description
+        model.append((preview.short_description, preview, priority, not skip, markup))
         
     return model
 

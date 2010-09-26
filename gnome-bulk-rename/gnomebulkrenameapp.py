@@ -640,8 +640,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         alignment.add(label)
 
         # previews
-        previews_model = self._collect_previews()
-        filteredmodel = previews_model.filter_new()
+        self._previews_model = self._collect_previews()
+        filteredmodel = self._previews_model.filter_new()
         filteredmodel.set_visible_column(constants.PREVIEWS_COLUMN_VISIBLE)
         
         alignment = gtk.Alignment(xscale=1)
@@ -704,11 +704,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._logger.debug("Saving state")
         state = {}
         
-        # combo box
-        previews_model = self._previews_combobox.get_model()
+        # previews combo box
+        filtered_previews_model = self._previews_combobox.get_model()
         idx = self._previews_combobox.get_active()
         if idx >= 0:
-            state["current_preview_short_description"] = previews_model[idx][0] 
+            state["current_preview_short_description"] = filtered_previews_model[idx][0] 
             
         pickle.dump(state, open(os.path.join(config.config_dir, "state"), "w"))
 
@@ -799,7 +799,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self.refresh(model_changed=True)
 
     def _on_action_preferences(self, dummy=None):
-        prefswindow = preferences.Window()
+        prefswindow = preferences.Window(self._previews_model)
         prefswindow.show_all()
 
     def _on_action_quit(self, dummy=None):
