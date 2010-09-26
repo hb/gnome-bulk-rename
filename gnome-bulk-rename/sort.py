@@ -21,6 +21,5 @@ class ByName(object):
     
     short_description = "by name"
 
-    @staticmethod    
-    def sort(model, iter1, iter2):
+    def sort(self, model, iter1, iter2):
         return cmp(model.get(iter1, 0), model.get(iter2, 0))

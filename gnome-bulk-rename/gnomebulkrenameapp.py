@@ -594,9 +594,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         sorting_model.append(("manually", constants.SORT_ID_MANUAL))
         
         for ii,sort in enumerate(collect.get_sort_from_modulename("sort")):
-            sorting_model.append((sort.short_description, ii+1))
-            self._files_model.set_sort_func(ii+1, sort.sort)
-        #sorting_model.append(("by name", constants.SORT_ID_NAME))        
+            inst = sort()
+            sorting_model.append((inst.short_description, ii+1))
+            self._files_model.set_sort_func(ii+1, inst.sort)
         
         sorting_combobox = gtk.ComboBox(sorting_model)
         cell = gtk.CellRendererText()
