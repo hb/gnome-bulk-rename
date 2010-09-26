@@ -19,16 +19,17 @@
 
 import logging
 
+logger = logging.getLogger("gnome.bulk-rename.collect") 
+
 def get_previews_from_modulname(modulname):
     """Look for previewable objects in the module named modulname"""
-    logger = logging.getLogger("gnome.bulk-rename.collect") 
     try:
         module = __import__(modulname)
     except ImportError:
         logger.error("Could not import module file: '%s'" % modulname)
         return []
 
-    logger.debug("Inspecting module '%s'" % modulname)
+    logger.debug("Inspecting module '%s' for previews" % modulname)
     previews = []
     for entry in dir(module):
         if entry.startswith("_"):
@@ -44,3 +45,28 @@ def get_previews_from_modulname(modulname):
 
     logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
     return previews
+
+
+def get_sort_from_modulename(modulename):
+    """Look for sortable objects in the module named modulename"""
+    try:
+        module = __import__(modulename)
+    except ImportError:
+        logger.error("Could not import module file: '%s'" % modulename)
+        return []
+    
+    logger.debug("Inspecting module '%s' for loggers" % modulename)
+    sorts = []
+    for entry in dir(module):
+        if entry.startswith("_"):
+            continue
+        classobj = getattr(module, entry)
+        if hasattr(classobj, "sort") and hasattr(classobj, "short_description"):
+            try:
+                if classobj.skip:
+                    continue
+            except AttributeError:
+                pass
+            sorts.append(classobj)
+    logger.debug(("`Found %d sort objects: " % len(sorts))+ ", ".join([repr(sorttype) for sorttype in sorts]))
+    return sorts

@@ -520,10 +520,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         """constructor"""
         GnomeBulkRenameAppBase.__init__(self, uris)
 
-        def files_model_sort_by_name(model, iter1, iter2):
-            return cmp(model.get(iter1, 0), model.get(iter2, 0))
-
-
         def sorting_combobox_changed(combobox, files_model, order_check):
             id = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_ID]
             if order_check.get_active():
@@ -536,7 +532,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             else:
                 order_check.set_sensitive(True)
                 files_model.set_sort_column_id(id, order)
-
 
         def sorting_order_check_toggled(checkbutton, model, combobox):
             sorting_combobox_changed(combobox, model, checkbutton)
@@ -594,8 +589,12 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox.pack_start(gtk.Label("Sort"), False)
         sorting_model = gtk.ListStore(*constants.SORTING_COLUMNS)
         sorting_model.append(("manually", constants.SORT_ID_MANUAL))
-        sorting_model.append(("by name", constants.SORT_ID_NAME))
-        self._files_model.set_sort_func(constants.SORT_ID_NAME, files_model_sort_by_name)
+        
+        for ii,sort in enumerate(collect.get_sort_from_modulename("sort")):
+            sorting_model.append((sort.short_description, ii+1))
+            self._files_model.set_sort_func(ii+1, sort.sort)
+        #sorting_model.append(("by name", constants.SORT_ID_NAME))        
+        
         sorting_combobox = gtk.ComboBox(sorting_model)
         cell = gtk.CellRendererText()
         sorting_combobox.pack_start(cell, True)
