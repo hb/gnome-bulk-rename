@@ -89,10 +89,6 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
         PreviewTranslate.__init__(self, refresh_func, model)
         self.set_source_and_target(" ", "_")
 
-    def get_config_widget(self):
-        hbox = gtk.HBox(False, 0)
-        hbox.pack_start(gtk.Label("This mode doesn't have configuration options."), False)
-        return hbox
 
 class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     
