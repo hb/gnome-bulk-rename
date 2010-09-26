@@ -46,6 +46,7 @@ class GnomeBulkRenameAppBase(object):
     """Base class for bulk renamer frontends"""
 
     TARGET_TYPE_URI_LIST = 94
+    TARGET_TYPE_MODEL_ROW = 95
 
     def __init__(self, uris=None):
 
@@ -86,8 +87,10 @@ class GnomeBulkRenameAppBase(object):
         self._files_model.connect("row-deleted", files_model_row_deleted_cb, self)
         treeview = gtk.TreeView(self._files_model)
         treeview.set_size_request(450, 100)
-        treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
-                  [('text/uri-list', 0, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST)], gtk.gdk.ACTION_COPY)
+        row_targets = [('text/uri-list', gtk.TARGET_OTHER_APP, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST),
+                        ("GTK_TREE_MODEL_ROW", gtk.TARGET_SAME_WIDGET, GnomeBulkRenameAppBase.TARGET_TYPE_MODEL_ROW)]
+        treeview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, row_targets, gtk.gdk.ACTION_MOVE)
+        treeview.enable_model_drag_dest(row_targets, gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
         treeview.connect("drag-data-received", self._on_drag_data_received)
         selection = treeview.get_selection()
         selection.set_mode(gtk.SELECTION_MULTIPLE)
