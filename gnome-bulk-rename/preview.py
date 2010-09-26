@@ -294,6 +294,123 @@ class PreviewToTitle(object):
             row[1] = row[0].title()
 
 
+class PreviewEnumerate(object):
+    
+    short_description = "Enumerations"
+    
+    def __init__(self, refresh_func, model):
+        self._refresh_func = refresh_func
+        
+        # config widget
+        table = gtk.Table(4, 2)
+        table.set_col_spacings(12)
+        table.set_row_spacings(4)
+
+        row = -1
+        
+        # starting value
+        row += 1
+        table.attach(gtk.Label("Starting value:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        adjustment = gtk.Adjustment(1, 1, 999999, 1, 10)
+        align = gtk.Alignment()
+        spinner = gtk.SpinButton(adjustment, 1, 0)
+        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        spinner.connect("value-changed", self._trigger_refresh)
+        align.add(spinner)
+        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        self._start_value_spinner = spinner
+
+        # increment
+        row += 1
+        table.attach(gtk.Label("Increment:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        adjustment = gtk.Adjustment(1, 1, 1000, 1, 10)
+        align = gtk.Alignment()
+        spinner = gtk.SpinButton(adjustment, 1, 0)
+        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        spinner.connect("value-changed", self._trigger_refresh)
+        align.add(spinner)
+        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        self._increment_spinner = spinner
+
+        # zero padding
+        row += 1
+        table.attach(gtk.Label("Zero padding:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        adjustment = gtk.Adjustment(1, 1, 10, 1, 1)
+        align = gtk.Alignment()
+        spinner = gtk.SpinButton(adjustment, 1, 0)
+        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        spinner.connect("value-changed", self._trigger_refresh)
+        align.add(spinner)
+        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        self._zero_padding_spinner = spinner
+
+        # text
+        row += 1
+        table.attach(gtk.Label("Text:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        entry = gtk.Entry()
+        entry.connect("changed", self._trigger_refresh)
+        entry.set_text(".")
+        table.attach(entry, 1, 2, row, row+1, xoptions=gtk.FILL)
+        self._text_entry = entry
+
+        # format
+        row += 1
+        table.attach(gtk.Label("Format:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        combobox = gtk.combo_box_new_text()
+        combobox.append_text("Number - Text - Old Name")
+        combobox.append_text("Old Name - Text - Number")
+        combobox.append_text("Text - Number")
+        combobox.append_text("Number - Text")
+        combobox.connect("changed", self._trigger_refresh)
+        combobox.set_active(0)
+        align = gtk.Alignment()
+        align.add(combobox)
+        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        self._format_combobox = combobox
+        
+        self._config_widget = table
+
+
+    def preview(self, model):
+        value = self._start_value_spinner.get_value_as_int()
+        increment = self._increment_spinner.get_value_as_int()
+        zero_padding = self._zero_padding_spinner.get_value_as_int()
+        format = self._format_combobox.get_active_text()
+        text = self._text_entry.get_text()
+
+        if format == "Number - Text - Old Name":
+            ff = "%%0%dd%%s%%s" % zero_padding  
+            for row in model:
+                row[1] = ff % (value, text, row[0])
+                value += increment
+        elif format == "Old Name - Text - Number":
+            ff = "%%s%%s%%0%dd" % zero_padding
+            for row in model:
+                row[1] = ff % (row[0], text, value)
+                value += increment
+        elif format == "Text - Number":
+            ff = "%%s%%0%dd" % zero_padding
+            for row in model:
+                row[1] = ff % (text, value)
+                value += increment
+        elif format == "Number - Text":
+            ff = "%%0%dd%%s" % zero_padding
+            for row in model:
+                row[1] = ff % (value, text)
+                value += increment
+        else:
+            row[1] = row[0]
+        
+    
+    
+    def get_config_widget(self):
+        return self._config_widget
+
+
+    def _trigger_refresh(self, dummy):
+        self._refresh_func()
+
+
 class PreviewCommonModificationsSimple(object):
     """This previewer is intended as a fallback for the longest substring replacement
     in cases where no such substring exists"""
