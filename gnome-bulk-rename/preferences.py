@@ -39,6 +39,7 @@ class Window(gtk.Window):
         self.set_position(gtk.WIN_POS_MOUSE)
         self.set_title("Bulk Rename Preferences")
         self.set_border_width(4)
+        self.set_default_size(450, 400)
 
         notebook = gtk.Notebook()
         self.add(notebook)
@@ -46,18 +47,21 @@ class Window(gtk.Window):
         # Previewers
         vbox = gtk.VBox(False, 0)
         notebook.append_page(vbox, gtk.Label("Previewers"))
+        scrolledwin = gtk.ScrolledWindow()
+        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        vbox.pack_start(scrolledwin)
         treeview = gtk.TreeView(previews_model)
-        treeview.set_headers_visible(False)        
-        vbox.pack_start(treeview)
+        treeview.set_headers_visible(False)
+        scrolledwin.add(treeview)
         
         textrenderer = gtk.CellRendererText()
         togglerenderer = gtk.CellRendererToggle()
         togglerenderer.set_property("activatable", True)
         togglerenderer.connect('toggled', toggled_callback, previews_model)
         # column "active"
-        column = gtk.TreeViewColumn("active", togglerenderer, active=constants.PREVIEWS_COLUMN_VISIBLE)
+        column = gtk.TreeViewColumn(None, togglerenderer, active=constants.PREVIEWS_COLUMN_VISIBLE)
         treeview.append_column(column)
         # column "original"
-        column = gtk.TreeViewColumn("original", textrenderer, markup=constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION_MARKUP)
+        column = gtk.TreeViewColumn(None, textrenderer, markup=constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION_MARKUP)
         column.set_expand(True)
         treeview.append_column(column)
