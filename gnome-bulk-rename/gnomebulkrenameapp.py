@@ -638,19 +638,21 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         label = gtk.Label()
         label.set_markup("<b>Mode:</b>")
         alignment.add(label)
+
+        # previews
+        previews_model = self._collect_previews()
+        filteredmodel = previews_model.filter_new()
+        filteredmodel.set_visible_column(constants.PREVIEWS_COLUMN_VISIBLE)
         
         alignment = gtk.Alignment(xscale=1)
         alignment.set_padding(6, 0, 18, 0)
         vbox.pack_start(alignment, False)
-        previews_model = gtk.ListStore(*constants.PREVIEWS_SELECTION_COLUMNS)
-        self._previews_combobox = gtk.ComboBox(previews_model)
+        self._previews_combobox = gtk.ComboBox(filteredmodel)
         cell = gtk.CellRendererText()
         self._previews_combobox.pack_start(cell, True)
         self._previews_combobox.add_attribute(cell, "text", 0)
         self._previews_combobox.connect("changed", self._on_previews_combobox_changed)
         alignment.add(self._previews_combobox)
-
-        self._collect_previews()
 
         # config area
         alignment = gtk.Alignment()
@@ -820,7 +822,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
 
     def _on_previews_combobox_changed(self, combobox):
-        previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_SELECTION_PREVIEW]
+        previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_COLUMN_PREVIEW]
         self._current_preview = previewclass(self.refresh, self._files_model)
 
         # configuration
@@ -841,10 +843,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
     def _collect_previews(self):
         """Fill combobox with previews"""
-        previews_model = self._previews_combobox.get_model()
-        
         # builtin
-        previews = collect.get_previews_from_modulname("preview")
+        previews_model = collect.get_previews_from_modulname("preview")
 
         # user specific
         if not os.path.isdir(config.user_previewers_dir):
@@ -868,20 +868,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
             sys.path.insert(0, config.user_previewers_dir)
             for modulname in modules:
-                    previews.extend(collect.get_previews_from_modulname(modulname))
+                collect.get_previews_from_modulname(modulname, previews_model)
             del sys.path[0]
-
-        # add findings
-        for preview in previews:
-            try:
-                priority = preview.priority
-            except AttributeError:
-                priority = 0.5
-            inserted = False
-            for ii,row in enumerate(previews_model):
-                if row[constants.PREVIEWS_SELECTION_PRIORITY] > priority:
-                    previews_model.insert(ii, (preview.short_description, preview, priority))
-                    inserted = True
-                    break
-            if not inserted:  
-                previews_model.append((preview.short_description, preview, priority))
+    
+        previews_model.set_default_sort_func(lambda model, iter1, iter2 : cmp(model.get_value(iter1, constants.PREVIEWS_COLUMN_PRIORITY), model.get_value(iter2, constants.PREVIEWS_COLUMN_PRIORITY)))
+        previews_model.set_sort_column_id(gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, gtk.SORT_ASCENDING)
+        return previews_model
+    

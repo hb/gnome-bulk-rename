@@ -19,15 +19,27 @@
 
 import logging
 
+import pygtk
+pygtk.require('2.0')
+import glib
+import gio
+import gtk
+
+import constants
+
+
 logger = logging.getLogger("gnome.bulk-rename.collect") 
 
-def get_previews_from_modulname(modulname):
+def get_previews_from_modulname(modulname, model=None):
     """Look for previewable objects in the module named modulname"""
+    if model is None:
+        model = gtk.ListStore(*constants.PREVIEWS_COLUMNS)
+    
     try:
         module = __import__(modulname)
     except ImportError:
         logger.error("Could not import module file: '%s'" % modulname)
-        return []
+        return model
 
     logger.debug("Inspecting module '%s' for previews" % modulname)
     previews = []
@@ -36,15 +48,25 @@ def get_previews_from_modulname(modulname):
             continue
         classobj = getattr(module, entry)
         if hasattr(classobj, "preview") and hasattr(classobj, "short_description"):
-            try:
-                if classobj.skip:
-                    continue
-            except AttributeError:
-                pass
             previews.append(classobj)
 
     logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
-    return previews
+    
+    # add to model
+    for preview in previews:
+        try:
+            priority = preview.priority
+        except AttributeError:
+            priority = 0.5
+            
+        try:
+            skip = preview.skip
+        except AttributeError:
+            skip = False
+
+        model.append((preview.short_description, preview, priority, not skip))
+        
+    return model
 
 
 def get_sort_from_modulename(modulename):

@@ -170,7 +170,7 @@ class PreviewSearchReplace(object):
     """Search/replace previewer"""
     
     short_description = "Search / replace"
-    priority = 0.1
+    priority = 0.2
     
     def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
@@ -239,7 +239,7 @@ class PreviewSearchReplace(object):
     def _check_validity_of_search_string(self):
         # get search string
         if self._case_insensitive_check.get_active():
-            self._search_string = entry.get_text().lower()
+            self._search_string = self._search_entry.get_text().lower()
         else:
             self._search_string = self._search_entry.get_text()
             
@@ -293,6 +293,7 @@ class PreviewToTitle(object):
 class PreviewEnumerate(object):
     
     short_description = "Enumerations"
+    priority = 0.6
     
     def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
@@ -465,6 +466,7 @@ class PreviewCommonModificationsSimple(object):
 class PreviewCommonModifications(object):
     
     short_description = "Common specialized modifications"
+    priority = 0.1
 
     PREVIEWS_SELECTION_COLUMNS = (str, object)
     PREVIEWS_SELECTION_COLUMN_SHORT_DESCRIPTION = 0

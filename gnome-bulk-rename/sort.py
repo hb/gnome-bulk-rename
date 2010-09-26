@@ -39,9 +39,9 @@ class ByName(object):
 
     def sort(self, model, iter1, iter2):
         if self._case_sensitive:
-            return cmp(model.get(iter1, 0)[0], model.get(iter2, 0)[0])
+            return cmp(model.get_value(iter1, 0), model.get_value(iter2, 0))
         else:
-            return cmp(model.get(iter1, 0)[0].lower(), model.get(iter2, 0)[0].lower())
+            return cmp(model.get_value(iter1, 0).lower(), model.get_value(iter2, 0).lower())
 
 
     def get_config_widget(self):
