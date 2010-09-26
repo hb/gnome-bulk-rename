@@ -48,6 +48,11 @@ def get_previews_from_modulname(modulname, model=None):
             continue
         classobj = getattr(module, entry)
         if hasattr(classobj, "preview") and hasattr(classobj, "short_description"):
+            try:
+                if classobj.ignore:
+                    continue
+            except AttributeError:
+                pass
             previews.append(classobj)
 
     logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))

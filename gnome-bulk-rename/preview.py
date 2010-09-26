@@ -564,6 +564,7 @@ class PreviewReplaceEverySecondWithFixedString(object):
     
     short_description = "Replace with fixed string"
     skip = True
+    ignore = True
     priority = 0.8
     
     def __init__(self, refresh_func, model):
