@@ -681,6 +681,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         buttonbox.add(self._rename_button)
 
+        # prefs window
+        self._preferences_window = preferences.Window(self._previews_model)
+
         # restore state
         self._restore_state()
         
@@ -799,8 +802,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self.refresh(model_changed=True)
 
     def _on_action_preferences(self, dummy=None):
-        prefswindow = preferences.Window(self._previews_model)
-        prefswindow.show_all()
+        self._preferences_window.show()
 
     def _on_action_quit(self, dummy=None):
         self.quit()
