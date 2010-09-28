@@ -15,6 +15,8 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+import os
+
 import pygtk
 pygtk.require('2.0')
 import gio
@@ -207,4 +209,73 @@ class Rename(object):
 
 
     def _two_pass_rename(self):
-        raise NotImplementedError
+
+        results = RenameResults(self._model, two_pass_rename=True)
+
+        prefix = "gbr-%10d--" % os.getpid()
+
+
+        def _rename_back_on_final_errors(successful_renames, errors):
+            for id, error_msg in errors:
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+            
+            self._done_cb(len(successful_renames), len(errors), results)
+
+        def _rename_to_final_done_cb(successful_renames, errors):
+            
+            # update the model
+            for id, new_gfile in successful_renames:
+                folder_uri = self._model[id][constants.FILES_MODEL_COLUMN_URI_DIRNAME]
+                old_name = self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL]
+                new_name = self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW]
+                results.rename_data.append((folder_uri, old_name, new_name))
+                
+                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_name
+                self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                
+            for id, error_msg in errors:
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+                
+            if errors:
+                # for all errors -> rename back
+                rename_back_map = []
+                for irow, error_msg in errors:
+                    rename_back_map.append((self._model[irow][constants.FILES_MODEL_COLUMN_GFILE],
+                                            self._model[irow][constants.FILES_MODEL_COLUMN_ORIGINAL], id))
+                self._cancellables = _rename(rename_back_map, _rename_back_on_final_errors)
+                
+            else:
+                # notify real caller
+                self._done_cb(len(successful_renames), len(errors), results)
+
+
+        def _rename_to_tmp_done_cb(successful_renames, errors):
+            
+            # mark erros
+            for id, error_msg in errors:
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+
+            # all successful renames to tmp names should be scheduled for renaming to final name
+            rename_to_final_map = []
+            for irow, new_gfile in successful_renames:
+                rename_to_final_map.append((new_gfile, self._model[irow][constants.FILES_MODEL_COLUMN_PREVIEW], irow))
+            self._cancellables = _rename(rename_to_final_map, _rename_to_final_done_cb)
+
+
+        # set up list for _rename to temporary file
+        rename_map = []
+        for ii, row in enumerate(self._model):
+            old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+            new_display_name = row[constants.FILES_MODEL_COLUMN_PREVIEW]
+
+            # skip files that don't change name
+            if old_display_name == new_display_name:
+                continue
+
+            gfile = row[constants.FILES_MODEL_COLUMN_GFILE]
+            rename_map.append((gfile, prefix + new_display_name, ii))
+
+        self._cancellables = _rename(rename_map, _rename_to_tmp_done_cb)

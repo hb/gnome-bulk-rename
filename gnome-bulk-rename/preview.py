@@ -583,7 +583,7 @@ class PreviewCircleNames(object):
     """Just for testing"""
 
     short_description = "Circle names"
-    skip = True
+    skip = False
     priority = 0.81
     
     def __init__(self, refresh_func, model):
