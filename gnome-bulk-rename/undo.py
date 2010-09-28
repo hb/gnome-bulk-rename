@@ -66,21 +66,24 @@ class Undo(gobject.GObject):
     def push(self, action):
         """Action must be an undo-like object"""
         had_redo_stack = (len(self._redo_stack) > 0)
-
-        self._undo_stack.append(action)
         self._redo_stack = []
-
-        if len(self._undo_stack) == 1:
-            self._changed_can_undo(True)
+        self.push_back_to_undo(action)
         if had_redo_stack:
             self._changed_can_redo(False)
-
+        
 
     def push_to_redo(self, action):
         self._redo_stack.append(action)
 
         if len(self._redo_stack) == 1:
             self._changed_can_redo(True)
+
+    
+    def push_back_to_undo(self, action):
+        self._undo_stack.append(action)
+
+        if len(self._undo_stack) == 1:
+            self._changed_can_undo(True)
 
 
     def undo(self):

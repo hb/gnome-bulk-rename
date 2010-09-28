@@ -61,64 +61,85 @@ def _rename(map, done_callback):
 
 
 class RenameUndoAction(object):
-    """An object that knows how to undo a previous rename operation"""
-    def __init__(self, successful_renames, model):
-        self._model = model
-        # dictionary id -> (name_before_original_rename, name_after_original_rename, current_gfile)
-        self._data = {}
-        for id, new_gfile in successful_renames:
-            self._data[id] = [self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL], self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW], new_gfile]
+    def __init__(self, rename_results):
+        self._rename_results = rename_results
+        self._done_cb = None
+        self._id_to_names = {}
+
+
+    def set_done_callback(self, callback):
+        self._done_cb = callback
+
         
-
-    def set_done_callback(self, done_callback):
-        self._done_cb = done_callback
-
     def undo(self):
 
         def _rename_done_cb(successful_renames, errors):
-
-            # update the model
+            # possibly update the model
             for id, new_gfile in successful_renames:
-                self._data[id][2] = new_gfile
-                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._data[id][0]  
-                self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = self._data[id][2]
+                if id is not None:
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._id_to_names[id][0]
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
             for id, error_msg in errors:
-                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
-                
-                del self._data[id]
-            
+                if id:
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+
             self._done_cb(len(successful_renames), len(errors), self)
-        
-        # set up list
-        list = []
-        for id,vals in self._data.iteritems():
-            list.append((vals[2], vals[0], id))
-        _rename(list, _rename_done_cb)
-        
+
+        # set up list for rename
+        self._id_to_names = {}
+        ll = []
+        for (folder_uri, old_name, new_name) in self._rename_results.rename_data:
+            gfile = gio.File(uri=folder_uri+new_name)
+            rownum = self._find_row_number_of_gfile(gfile)
+            if rownum is not None:
+                self._id_to_names[rownum] = (old_name, new_name)
+            ll.append((gfile, old_name, rownum))
+        _rename(ll, _rename_done_cb)
+
 
     def redo(self):
         
         def _rename_done_cb(successful_renames, errors):
-
-            # update the model
+            # possibly update the model
             for id, new_gfile in successful_renames:
-                self._data[id][2] = new_gfile
-                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._data[id][1]  
-                self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = self._data[id][2]
+                if id is not None:
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._id_to_names[id][1]
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
             for id, error_msg in errors:
-                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
-                
-                del self._data[id]
-            
+                if id:
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+
             self._done_cb(len(successful_renames), len(errors), self)
+            
+
+        # set up list for rename
+        self._id_to_names = {}
+        ll = []
+        for (folder_uri, old_name, new_name) in self._rename_results.rename_data:
+            gfile = gio.File(uri=folder_uri+old_name)
+            rownum = self._find_row_number_of_gfile(gfile)
+            if rownum is not None:
+                self._id_to_names[rownum] = (old_name, new_name)
+            ll.append((gfile, new_name, rownum))
+        _rename(ll, _rename_done_cb)
+
+    def _find_row_number_of_gfile(self, gfile):
+        """Returns row number, or None"""
+        for ii,row in enumerate(self._rename_results.model):
+            if row[constants.FILES_MODEL_COLUMN_GFILE].equal(gfile):
+                return ii
+        return None
+                
         
-        # set up list
-        list = []
-        for id,vals in self._data.iteritems():
-            list.append((vals[2], vals[1], id))
-        _rename(list, _rename_done_cb)
+
+class RenameResults(object):
+    """An object representing the results of a rename operation"""
+    def __init__(self, model, two_pass_rename):
+        self.model = model
+        self.two_pass_rename = two_pass_rename
+        self.rename_data = [] # list of (folder_uri, old_name, new_name)
 
 
 class Rename(object):
@@ -147,21 +168,26 @@ class Rename(object):
 
     def _single_pass_rename(self):
 
+        results = RenameResults(self._model, two_pass_rename=False)
+
         def _rename_done_cb(successful_renames, errors):
 
-            # set up undo action
-            undo_action = RenameUndoAction(successful_renames, self._model)
-            
             # update the model
             for id, new_gfile in successful_renames:
-                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW]
+                folder_uri = self._model[id][constants.FILES_MODEL_COLUMN_URI_DIRNAME]
+                old_name = self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL]
+                new_name = self._model[id][constants.FILES_MODEL_COLUMN_PREVIEW]
+                results.rename_data.append((folder_uri, old_name, new_name))
+                
+                self._model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_name
                 self._model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                
             for id, error_msg in errors:
                 self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
                 self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
 
             # notify real caller
-            self._done_cb(len(successful_renames), len(errors), undo_action)
+            self._done_cb(len(successful_renames), len(errors), results)
 
 
         # set up list for _rename
@@ -178,8 +204,6 @@ class Rename(object):
             rename_map.append((gfile, new_display_name, ii))
 
         self._cancellables = _rename(rename_map, _rename_done_cb)
-
-
 
 
     def _two_pass_rename(self):

@@ -344,9 +344,10 @@ class GnomeBulkRenameAppBase(object):
         self._files_info_bar.show()        
 
 
-    def _on_rename_completed(self, num_renames, num_errors, undo_action):
+    def _on_rename_completed(self, num_renames, num_errors, results):
         self._logger.debug("Rename completed")
         
+        undo_action = rename.RenameUndoAction(results)
         undo_action.set_done_callback(self._on_undo_rename_completed)
         self._undo.push(undo_action)
         
@@ -368,7 +369,7 @@ class GnomeBulkRenameAppBase(object):
         self._logger.debug("Redo rename done")
         if num_renames > 0:
             undo_action.set_done_callback(self._on_undo_rename_completed)
-            self._undo.push(undo_action)
+            self._undo.push_back_to_undo(undo_action)
         self.refresh(did_just_rename=True)
         self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
 
