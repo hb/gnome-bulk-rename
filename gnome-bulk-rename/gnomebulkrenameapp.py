@@ -162,6 +162,8 @@ class GnomeBulkRenameAppBase(object):
             self._checker.perform_checks()
             self._update_rename_button_sensitivity()
             self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
+        else:
+            self._set_info_bar_according_to_problem_level(0)
 
     def _on_tree_selection_changed(self, selection):
         self._remove_action.set_sensitive(selection.count_selected_rows() > 0)
