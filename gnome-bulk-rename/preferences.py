@@ -58,9 +58,10 @@ class Window(object):
         def on_info_button_clicked(button, treeview):
             (model, iter) = treeview.get_selection().get_selected()
             previewclass = model.get_value(iter, constants.PREVIEWS_COLUMN_PREVIEW)
-            # TODO
-            print previewclass.description
-
+            dlg = gtk.MessageDialog(parent=self._window, flags=gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_CLOSE, message_format=model.get_value(iter, constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION))
+            dlg.format_secondary_markup(previewclass.description)
+            dlg.connect("response", lambda dlg, response_id : dlg.destroy())
+            dlg.show_all()
 
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self._window.set_position(gtk.WIN_POS_MOUSE)

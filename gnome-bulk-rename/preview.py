@@ -548,7 +548,7 @@ class PreviewNoop(object):
     """Source name is identical to target name."""
 
     short_description = "No change"
-    description = "Long description"
+    description = "Very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long description"
     skip = True
     priority = 0.11
 
