@@ -28,7 +28,7 @@ import gtk
 import constants
 
 
-logger = logging.getLogger("gnome.bulk-rename.collect") 
+_logger = logging.getLogger("gnome.bulk-rename.collect") 
 
 def get_previews_from_modulname(modulname, model=None):
     """Look for previewable objects in the module named modulname"""
@@ -38,10 +38,10 @@ def get_previews_from_modulname(modulname, model=None):
     try:
         module = __import__(modulname)
     except ImportError:
-        logger.error("Could not import module file: '%s'" % modulname)
+        _logger.error("Could not import module file: '%s'" % modulname)
         return model
 
-    logger.debug("Inspecting module '%s' for previews" % modulname)
+    _logger.debug("Inspecting module '%s' for previews" % modulname)
     previews = []
     for entry in dir(module):
         if entry.startswith("_"):
@@ -55,7 +55,7 @@ def get_previews_from_modulname(modulname, model=None):
                 pass
             previews.append(classobj)
 
-    logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
+    _logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
     
     # add to model
     for preview in previews:
@@ -83,10 +83,10 @@ def get_sort_from_modulename(modulename):
     try:
         module = __import__(modulename)
     except ImportError:
-        logger.error("Could not import module file: '%s'" % modulename)
+        _logger.error("Could not import module file: '%s'" % modulename)
         return []
     
-    logger.debug("Inspecting module '%s' for loggers" % modulename)
+    _logger.debug("Inspecting module '%s' for loggers" % modulename)
     sorts = []
     for entry in dir(module):
         if entry.startswith("_"):
@@ -99,5 +99,5 @@ def get_sort_from_modulename(modulename):
             except AttributeError:
                 pass
             sorts.append(classobj)
-    logger.debug(("`Found %d sort objects: " % len(sorts))+ ", ".join([repr(sorttype) for sorttype in sorts]))
+    _logger.debug(("`Found %d sort objects: " % len(sorts))+ ", ".join([repr(sorttype) for sorttype in sorts]))
     return sorts
