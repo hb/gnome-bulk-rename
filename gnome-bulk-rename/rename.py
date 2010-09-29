@@ -79,72 +79,31 @@ class RenameUndoAction(object):
 
         
     def undo(self):
+        def _rename_done_cb(results):
+            self._rename_results = results
+            self._done_cb(results, self)
 
-        #def _done_cb(hhb
-
-        #rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, )
-        #def __init__(self, model, two_pass=False, done_callback=None, files_to_rename=None):
-        #hhb
-
-        def _rename_done_cb(successful_renames, errors):
-            # possibly update the model
-            for id, new_gfile in successful_renames:
-                if id is not None:
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._id_to_names[id][0]
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
-            for id, error_msg in errors:
-                if id:
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
-
-            self._done_cb(len(successful_renames), len(errors), self)
-
-        # set up list for rename
-        self._id_to_names = {}
-        ll = []
-        for (folder_uri, old_name, new_name) in self._rename_results.rename_data:
-            gfile = gio.File(uri=folder_uri+new_name)
-            rownum = self._find_row_number_of_gfile(gfile)
-            if rownum is not None:
-                self._id_to_names[rownum] = (old_name, new_name)
-            ll.append((gfile, old_name, rownum))
-        _rename(ll, _rename_done_cb)
+        # set up list
+        _logger.debug("Starting undo")
+        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, _rename_done_cb, self._set_up_list())
 
 
     def redo(self):
+        def _rename_done_cb(results):
+            self._rename_results = results
+            self._done_cb(results, self)
+
+        # set up list
+        _logger.debug("Starting redo")
+        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, _rename_done_cb, self._set_up_list())
+
+
+    def _set_up_list(self):
+        rename_map = []
+        for folder_uri, old_name, new_name in self._rename_results.rename_data:
+            rename_map.append((folder_uri, new_name, old_name))
+        return rename_map
         
-        def _rename_done_cb(successful_renames, errors):
-            # possibly update the model
-            for id, new_gfile in successful_renames:
-                if id is not None:
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ORIGINAL] = self._id_to_names[id][1]
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
-            for id, error_msg in errors:
-                if id:
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                    self._rename_results.model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
-
-            self._done_cb(len(successful_renames), len(errors), self)
-            
-
-        # set up list for rename
-        self._id_to_names = {}
-        ll = []
-        for (folder_uri, old_name, new_name) in self._rename_results.rename_data:
-            gfile = gio.File(uri=folder_uri+old_name)
-            rownum = self._find_row_number_of_gfile(gfile)
-            if rownum is not None:
-                self._id_to_names[rownum] = (old_name, new_name)
-            ll.append((gfile, new_name, rownum))
-        _rename(ll, _rename_done_cb)
-
-    def _find_row_number_of_gfile(self, gfile):
-        """Returns row number, or None"""
-        for ii,row in enumerate(self._rename_results.model):
-            if row[constants.FILES_MODEL_COLUMN_GFILE].equal(gfile):
-                return ii
-        return None
-                
         
 
 class RenameResults(object):
@@ -162,7 +121,7 @@ class Rename(object):
     def __init__(self, model, two_pass=False, done_callback=None, files_to_rename=None):
         """Constructor starts an async rename immediately, and returns.
         
-        If map is given, it is a list of (folder_uri, old_name, new_name) to be
+        If files_to_rename is given, it is a list of (folder_uri, old_name, new_name) to be
         dealt with instead of the whole model."""
         self._model = model
         self._done_cb = done_callback
@@ -193,8 +152,7 @@ class Rename(object):
             for dat, new_gfile in successful_renames:
                 (iRow, folder_uri, old_display_name, new_display_name) = dat
                 results.rename_data.append((folder_uri, old_display_name, new_display_name))
-
-                if iRow is not None:                                    
+                if iRow is not None:
                     self._model[iRow][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
                     self._model[iRow][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
                 _logger.debug("Renamed '%s/%s' to '%s'" % (folder_uri, old_display_name, new_display_name))

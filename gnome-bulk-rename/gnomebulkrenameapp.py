@@ -356,22 +356,22 @@ class GnomeBulkRenameAppBase(object):
         # TODO throttle off
 
 
-    def _on_undo_rename_completed(self, num_renames, num_errors, undo_action):
+    def _on_undo_rename_completed(self, results, undo_action):
         self._logger.debug("Undo rename done")
-        if num_renames > 0:
+        if len(results.rename_data) > 0:
             undo_action.set_done_callback(self._on_redo_rename_completed)
             self._undo.push_to_redo(undo_action)
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, True)
+        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), True)
         
 
-    def _on_redo_rename_completed(self, num_renames, num_errors, undo_action):
+    def _on_redo_rename_completed(self, results, undo_action):
         self._logger.debug("Redo rename done")
-        if num_renames > 0:
+        if len(results.rename_data) > 0:
             undo_action.set_done_callback(self._on_undo_rename_completed)
             self._undo.push_back_to_undo(undo_action)
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
+        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
 
 
     def _on_undo_button_clicked(self, button):
