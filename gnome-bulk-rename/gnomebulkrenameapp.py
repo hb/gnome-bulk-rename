@@ -344,7 +344,7 @@ class GnomeBulkRenameAppBase(object):
         self._files_info_bar.show()        
 
 
-    def _on_rename_completed(self, num_renames, num_errors, results):
+    def _on_rename_completed(self, results):
         self._logger.debug("Rename completed")
         
         undo_action = rename.RenameUndoAction(results)
@@ -352,7 +352,7 @@ class GnomeBulkRenameAppBase(object):
         self._undo.push(undo_action)
         
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(num_renames, num_errors, False)
+        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
         # TODO throttle off
 
 
