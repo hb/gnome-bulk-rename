@@ -346,20 +346,31 @@ class GnomeBulkRenameAppBase(object):
         self._files_info_bar.show()        
 
 
+    def _update_files_model_tooltips_column(self):
+        for row in self._files_model:
+            tooltips = row[constants.FILES_MODEL_COLUMN_TOOLTIP].split()
+            if tooltips:
+                del tooltips[0]
+            else:
+                tooltips = [] 
+            tooltips.insert(0, row[constants.FILES_MODEL_COLUMN_GFILE].get_uri())
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "\n".join(tooltips)
+
+
     def _on_rename_completed(self, results):
         self._logger.debug("Rename completed")
-        
+        self._update_files_model_tooltips_column()
         undo_action = rename.RenameUndoAction(results)
         undo_action.set_done_callback(self._on_undo_rename_completed)
         self._undo.push(undo_action)
-        
         self.refresh(did_just_rename=True)
         self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
         # TODO throttle off
-
-
+        
+                    
     def _on_undo_rename_completed(self, results, undo_action):
         self._logger.debug("Undo rename done")
+        self._update_files_model_tooltips_column()
         if len(results.rename_data) > 0:
             undo_action.set_done_callback(self._on_redo_rename_completed)
             self._undo.push_to_redo(undo_action)
@@ -369,6 +380,7 @@ class GnomeBulkRenameAppBase(object):
 
     def _on_redo_rename_completed(self, results, undo_action):
         self._logger.debug("Redo rename done")
+        self._update_files_model_tooltips_column()
         if len(results.rename_data) > 0:
             undo_action.set_done_callback(self._on_undo_rename_completed)
             self._undo.push_back_to_undo(undo_action)
