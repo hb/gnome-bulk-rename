@@ -77,9 +77,11 @@ class Window(object):
         
         # Previewers
         tab_vbox = gtk.VBox(False, 0)
+        tab_vbox.set_border_width(12)
         notebook.append_page(tab_vbox, gtk.Label("Previewers"))
         scrolledwin = gtk.ScrolledWindow()
         scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         tab_vbox.pack_start(scrolledwin)
         treeview = gtk.TreeView(self._previews_model)
         treeview.set_headers_visible(False)
@@ -101,7 +103,7 @@ class Window(object):
         buttonbox = gtk.HButtonBox()
         buttonbox.set_layout(gtk.BUTTONBOX_END)
         buttonbox.set_spacing(12)
-        tab_vbox.pack_start(buttonbox, False, False, 4)
+        tab_vbox.pack_start(buttonbox, False, False, 8)
         button = gtk.Button(stock=gtk.STOCK_INFO)
         button.set_sensitive(False)
         button.connect("clicked", on_info_button_clicked, treeview)

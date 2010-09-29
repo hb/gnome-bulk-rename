@@ -78,12 +78,10 @@ class GnomeBulkRenameAppBase(object):
         self._file_list_widget.pack_start(self._files_info_bar, False)
 
         # filename list
-        frame = gtk.Frame()
-        frame.set_shadow_type(gtk.SHADOW_ETCHED_OUT)
-        self._file_list_widget.pack_start(frame, True, True, 4)
         scrolledwin = gtk.ScrolledWindow()
         scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        frame.add(scrolledwin)
+        scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        self._file_list_widget.pack_start(scrolledwin, True, True, 4)
         self._files_model = gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
         self._files_model.connect("row-deleted", files_model_row_deleted_cb, self)
         treeview = gtk.TreeView(self._files_model)
