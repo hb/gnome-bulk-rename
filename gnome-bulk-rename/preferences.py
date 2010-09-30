@@ -23,9 +23,10 @@ import constants
 
 class Window(object):
     
-    def __init__(self, previews_model):
+    def __init__(self, previews_model, sorting_model):
         self._window = None
         self._previews_model = previews_model
+        self._sorting_model = sorting_model
     
     
     def show(self):
@@ -36,33 +37,6 @@ class Window(object):
     
     def _setup(self):
         
-        def toggled_callback(cell, path, model=None):
-            iter = model.get_iter(path)
-            is_active = not cell.get_active()
-            short_desc = model.get_value(iter, constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION)
-            if is_active:
-                model.set_value(iter, constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION_MARKUP, short_desc)
-            else:
-                 model.set_value(iter, constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION_MARKUP, "".join(['<span color="gray">', short_desc, '</span>']))
-            model.set_value(iter, constants.PREVIEWS_COLUMN_VISIBLE, is_active)
-
-        def on_selection_changed(selection, infobutton):
-            (model, iter) = selection.get_selected()
-            if iter:
-                previewclass = model.get_value(iter, constants.PREVIEWS_COLUMN_PREVIEW)
-                infobutton.set_sensitive(hasattr(previewclass, "description"))
-            else:
-                infobutton.set_sensitive(False)
-
-
-        def on_info_button_clicked(button, treeview):
-            (model, iter) = treeview.get_selection().get_selected()
-            previewclass = model.get_value(iter, constants.PREVIEWS_COLUMN_PREVIEW)
-            dlg = gtk.MessageDialog(parent=self._window, flags=gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_CLOSE, message_format=model.get_value(iter, constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION))
-            dlg.format_secondary_markup(previewclass.description)
-            dlg.connect("response", lambda dlg, response_id : dlg.destroy())
-            dlg.show_all()
-
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self._window.set_position(gtk.WIN_POS_MOUSE)
         self._window.set_title("Bulk Rename Preferences")
@@ -74,28 +48,70 @@ class Window(object):
 
         notebook = gtk.Notebook()
         vbox.pack_start(notebook)
+
+        notebook.append_page(self._setup_extensible_model_tab(self._previews_model), gtk.Label("Previewers"))
+        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), gtk.Label("Sorting"))
+
+        # button box
+        buttonbox = gtk.HButtonBox()
+        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox.set_spacing(12)
+        vbox.pack_start(buttonbox, False, False, 4)
         
-        # Previewers
+        close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
+        close_button.connect("clicked", lambda button, window : window.hide(), self._window)
+        buttonbox.add(close_button)
+        
+
+    def _setup_extensible_model_tab(self, model):
+
+        def toggled_callback(cell, path, model=None):
+            iter = model.get_iter(path)
+            is_active = not cell.get_active()
+            short_desc = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION)
+            if is_active:
+                model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, short_desc)
+            else:
+                 model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, "".join(['<span color="gray">', short_desc, '</span>']))
+            model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE, is_active)
+
+        def on_selection_changed(selection, infobutton):
+            (model, iter) = selection.get_selected()
+            if iter:
+                previewclass = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_OBJECT)
+                infobutton.set_sensitive(hasattr(previewclass, "description"))
+            else:
+                infobutton.set_sensitive(False)
+
+
+        def on_info_button_clicked(button, treeview):
+            (model, iter) = treeview.get_selection().get_selected()
+            previewclass = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_OBJECT)
+            dlg = gtk.MessageDialog(parent=self._window, flags=gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_CLOSE, message_format=model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION))
+            dlg.format_secondary_markup(previewclass.description)
+            dlg.connect("response", lambda dlg, response_id : dlg.destroy())
+            dlg.show_all()
+
+
         tab_vbox = gtk.VBox(False, 0)
         tab_vbox.set_border_width(12)
-        notebook.append_page(tab_vbox, gtk.Label("Previewers"))
         scrolledwin = gtk.ScrolledWindow()
         scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         tab_vbox.pack_start(scrolledwin)
-        treeview = gtk.TreeView(self._previews_model)
+        treeview = gtk.TreeView(model)
         treeview.set_headers_visible(False)
         scrolledwin.add(treeview)
         
         textrenderer = gtk.CellRendererText()
         togglerenderer = gtk.CellRendererToggle()
         togglerenderer.set_property("activatable", True)
-        togglerenderer.connect('toggled', toggled_callback, self._previews_model)
+        togglerenderer.connect('toggled', toggled_callback, model)
         # column "active"
-        column = gtk.TreeViewColumn(None, togglerenderer, active=constants.PREVIEWS_COLUMN_VISIBLE)
+        column = gtk.TreeViewColumn(None, togglerenderer, active=constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
         treeview.append_column(column)
         # column "original"
-        column = gtk.TreeViewColumn(None, textrenderer, markup=constants.PREVIEWS_COLUMN_SHORT_DESCRIPTION_MARKUP)
+        column = gtk.TreeViewColumn(None, textrenderer, markup=constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP)
         column.set_expand(True)
         treeview.append_column(column)
         
@@ -111,13 +127,19 @@ class Window(object):
 
         selection = treeview.get_selection()
         selection.connect("changed", on_selection_changed, button)
-        
-        # button box
-        buttonbox = gtk.HButtonBox()
-        buttonbox.set_layout(gtk.BUTTONBOX_END)
-        buttonbox.set_spacing(12)
-        vbox.pack_start(buttonbox, False, False, 4)
-        
-        close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
-        close_button.connect("clicked", lambda button, window : window.hide(), self._window)
-        buttonbox.add(close_button)
+                
+        return tab_vbox
+
+
+    def _setup_sorting_tab(self):
+
+        tab_vbox = gtk.VBox(False, 0)
+        tab_vbox.set_border_width(12)
+        scrolledwin = gtk.ScrolledWindow()
+        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        tab_vbox.pack_start(scrolledwin)
+
+        scrolledwin.add_with_viewport(gtk.Label("Foo"))
+
+        return tab_vbox

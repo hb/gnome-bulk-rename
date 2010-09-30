@@ -18,7 +18,6 @@
 import cPickle as pickle
 
 import os
-import sys
 import os.path
 import urllib
 import logging
@@ -33,6 +32,7 @@ import gtk
 
 from preview import PreviewNoop,PreviewReplaceLongestSubstring, PreviewCommonModificationsSimple
 from markup import MarkupColor
+from sort import Manually as SortManually
 import check
 import constants
 import rename
@@ -541,8 +541,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         GnomeBulkRenameAppBase.__init__(self, uris)
 
         def sorting_combobox_changed(combobox, files_model, order_check, config_container):
-            id = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_ID]
-            instance = combobox.get_model()[combobox.get_active()][constants.SORTING_COLUMN_INSTANCE]
+            instance = combobox.get_model()[combobox.get_active()][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
+            if not hasattr(instance, "short_description"):
+                sort_id = constants.SORT_ID_MANUAL
+            else:
+                sort_id = instance.sort_id
             if order_check.get_active():
                 order = gtk.SORT_DESCENDING
             else:
@@ -550,7 +553,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
             gtkutils.clear_gtk_container(config_container)
 
-            if id == constants.SORT_ID_MANUAL:
+            if sort_id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
                 files_model.set_sort_column_id(gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
             else:
@@ -558,7 +561,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                 if hasattr(inst, "get_config_widget"):
                     config_container.pack_start(inst.get_config_widget(), False)
                     config_container.show_all()
-                files_model.set_sort_column_id(id, order)
+                files_model.set_sort_column_id(sort_id, order)
+
 
         def sorting_order_check_toggled(checkbutton, model, combobox, config_container):
             sorting_combobox_changed(combobox, model, checkbutton, config_container)
@@ -616,19 +620,24 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox = gtk.HBox(False, 12)
         align.add(hbox)
         hbox.pack_start(gtk.Label("Sort"), False)
-        sorting_model = gtk.ListStore(*constants.SORTING_COLUMNS)
-        sorting_model.append(("manually", constants.SORT_ID_MANUAL, None))
+
+        self._sorting_model = collect.get_extensible_model("sort", ["sort"])
+        for ii,row in enumerate(self._sorting_model):
+            # replace class object by actual instances
+            inst = row[constants.EXTENSIBLE_MODEL_COLUMN_OBJECT](self._files_model)
+            inst.sort_id = ii+1
+            self._sorting_model[ii][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT] = inst
+            self._files_model.set_sort_func(inst.sort_id, inst.sort)
+        # insert "manually" as first element
+        self._sorting_model.insert(0, ("manually", SortManually(), 0., True, "manually"))
+
+        filteredmodel = self._sorting_model.filter_new()
+        filteredmodel.set_visible_column(constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
         
-        for ii,sort in enumerate(collect.get_sort_from_modulename("sort")):
-            inst = sort(self._files_model)
-            sorting_model.append((inst.short_description, ii+1, inst))
-            self._files_model.set_sort_func(ii+1, inst.sort)
-        
-        sorting_combobox = gtk.ComboBox(sorting_model)
+        sorting_combobox = gtk.ComboBox(filteredmodel)
         cell = gtk.CellRendererText()
         sorting_combobox.pack_start(cell, True)
         sorting_combobox.add_attribute(cell, "text", 0)
-        sorting_combobox.set_active(0)
         hbox.pack_start(sorting_combobox, False)
         order_check = gtk.CheckButton("descending")
         order_check.set_sensitive(False)
@@ -637,6 +646,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox.pack_start(order_check, False)
         hbox.pack_start(sort_config_container, True)
         sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check, sort_config_container)
+        sorting_combobox.set_active(0)
 
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget)
@@ -653,9 +663,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         alignment.add(label)
 
         # previews
-        self._previews_model = self._collect_previews()
+        self._previews_model = collect.get_extensible_model("preview", ["preview"])
         filteredmodel = self._previews_model.filter_new()
-        filteredmodel.set_visible_column(constants.PREVIEWS_COLUMN_VISIBLE)
+        filteredmodel.set_visible_column(constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
         
         alignment = gtk.Alignment(xscale=1)
         alignment.set_padding(6, 0, 18, 0)
@@ -695,7 +705,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         buttonbox.add(self._rename_button)
 
         # prefs window
-        self._preferences_window = preferences.Window(self._previews_model)
+        self._preferences_window = preferences.Window(self._previews_model, self._sorting_model)
 
         # restore state
         self._restore_state()
@@ -837,7 +847,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
 
     def _on_previews_combobox_changed(self, combobox):
-        previewclass = combobox.get_model()[combobox.get_active()][constants.PREVIEWS_COLUMN_PREVIEW]
+        previewclass = combobox.get_model()[combobox.get_active()][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
         self._current_preview = previewclass(self.refresh, self._files_model)
 
         # configuration
@@ -854,39 +864,3 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # refresh
         self.refresh()
-
-
-    def _collect_previews(self):
-        """Fill combobox with previews"""
-        # builtin
-        previews_model = collect.get_previews_from_modulname("preview")
-
-        # user specific
-        if not os.path.isdir(config.user_previewers_dir):
-            try:
-                os.makedirs(config.user_previewers_dir)
-            except OSError:
-                self._logger.debug("Could not create '%s'" % config.user_previewers_dir)
-            else:
-                self._logger.debug("Created '%s'" % config.user_previewers_dir)
-        try:
-            files = os.listdir(config.user_previewers_dir)
-        except OSError:
-            self._logger.warning("Could not list '%s'" % config.user_previewers_dir)
-        else:
-            modules = set()
-            for file in files:
-                if file.endswith(".py"):
-                    modules.add(file[0:-3])
-                elif file.endswith(".pyc"):
-                    modules.add(file[0:-4])
-
-            sys.path.insert(0, config.user_previewers_dir)
-            for modulname in modules:
-                collect.get_previews_from_modulname(modulname, previews_model)
-            del sys.path[0]
-    
-        previews_model.set_default_sort_func(lambda model, iter1, iter2 : cmp(model.get_value(iter1, constants.PREVIEWS_COLUMN_PRIORITY), model.get_value(iter2, constants.PREVIEWS_COLUMN_PRIORITY)))
-        previews_model.set_sort_column_id(gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, gtk.SORT_ASCENDING)
-        return previews_model
-    

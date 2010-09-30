@@ -18,6 +18,8 @@
 """Collect previewers by introspection"""
 
 import logging
+import os.path
+
 
 import pygtk
 pygtk.require('2.0')
@@ -26,14 +28,16 @@ import gio
 import gtk
 
 import constants
+import config
+import sys
 
 
 _logger = logging.getLogger("gnome.bulk-rename.collect") 
 
-def get_previews_from_modulname(modulname, model=None):
-    """Look for previewable objects in the module named modulname"""
+
+def _get_extensible_model_from_modulname(modulname, required_attributes, model=None):
     if model is None:
-        model = gtk.ListStore(*constants.PREVIEWS_COLUMNS)
+        model = gtk.ListStore(*constants.EXTENSIBLE_MODEL_COLUMNS)
     
     try:
         module = __import__(modulname)
@@ -41,42 +45,96 @@ def get_previews_from_modulname(modulname, model=None):
         _logger.error("Could not import module file: '%s'" % modulname)
         return model
 
-    _logger.debug("Inspecting module '%s' for previews" % modulname)
-    previews = []
+    _logger.debug("Inspecting module '%s'" % modulname)
+    found_classes = []
     for entry in dir(module):
         if entry.startswith("_"):
             continue
         classobj = getattr(module, entry)
-        if hasattr(classobj, "preview") and hasattr(classobj, "short_description"):
-            try:
-                if classobj.ignore:
-                    continue
-            except AttributeError:
-                pass
-            previews.append(classobj)
+        if hasattr(classobj, "short_description"):
+            found_all_required_attributes = True
+            for required_attribute in required_attributes:
+                if not hasattr(classobj, required_attribute):
+                    found_all_required_attributes = False
+                    break
 
-    _logger.debug(("`Found %d preview objects: " % len(previews))+ ", ".join([repr(previewtype) for previewtype in previews]))
+            if found_all_required_attributes:                
+                try:
+                    if classobj.ignore:
+                        continue
+                except AttributeError:
+                    pass
+
+                found_classes.append(classobj)
+
+    _logger.debug(("`Found %d objects: " % len(found_classes))+ ", ".join([repr(classtype) for classtype in found_classes]))
     
     # add to model
-    for preview in previews:
+    for found_class in found_classes:
         try:
-            priority = preview.priority
+            priority = found_class.priority
         except AttributeError:
             priority = 0.5
             
         try:
-            skip = preview.skip
+            skip = found_class.skip
         except AttributeError:
             skip = False
         
         if skip:
-            markup = "".join(['<span color="gray">', preview.short_description, '</span>'])
+            markup = "".join(['<span color="gray">', found_class.short_description, '</span>'])
         else:
-            markup = preview.short_description
-        model.append((preview.short_description, preview, priority, not skip, markup))
-        
+            markup = found_class.short_description
+        model.append((found_class.short_description, found_class, priority, not skip, markup))
+
     return model
 
+
+def get_extensible_model(modulname, required_attributes):
+    """Returns a GtkListStore of found classes that implement a specific function.
+    
+    These classes are searched in the builtin module 'modulname', and then
+    in all .py or .pyc files in the directory config.user_data_dir/modulname.
+
+    The attribute short_description is implicitely required.
+
+    The sort order is set to the priority field."""
+    # builtin
+    model = _get_extensible_model_from_modulname(modulname, required_attributes)
+
+    # user specific
+    folder = os.path.join(config.user_data_dir, modulname)
+    if not os.path.isdir(folder):
+        try:
+            os.makedirs(folder)
+        except OSError:
+            _logger.debug("Could not create '%s'" % folder)
+        else:
+            _logger.debug("Created '%s'" % folder)
+
+    try:
+        files = os.listdir(folder)
+    except OSError:
+        _logger.warning("Could not list '%s'" % folder)
+    else:
+        modules = set()
+        for file in files:
+            if file.endswith(".py"):
+                modules.add(file[0:-3])
+            elif file.endswith(".pyc"):
+                modules.add(file[0:-4])
+
+        sys.path.insert(0, folder)
+        for found_module in modules:
+            _get_extensible_model_from_modulname(found_module, required_attributes, model)
+        del sys.path[0]
+    
+    model.set_default_sort_func(lambda model, iter1, iter2 : cmp(model.get_value(iter1, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY),
+                                                                 model.get_value(iter2, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY)))
+    model.set_sort_column_id(gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, gtk.SORT_ASCENDING)
+    return model
+
+    
 
 def get_sort_from_modulename(modulename):
     """Look for sortable objects in the module named modulename"""

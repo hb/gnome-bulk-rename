@@ -21,11 +21,17 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+import constants
+
+class Manually(object):
+    description = "No automatic sorting is applied to the files. It is possible to rearrange the files by drag and drop."
 
 class ByName(object):
     
     short_description = "by name"
-    
+    priority = 0.2
+    description = "Sort the files by their current file name."
+
     def __init__(self, treesortable):
         self._treesortable = treesortable
 

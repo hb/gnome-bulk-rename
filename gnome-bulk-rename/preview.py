@@ -415,7 +415,7 @@ class PreviewCommonModificationsSimple(object):
     short_description = "Simple common modifications"
     skip = True
     
-    PREVIEWS_SELECTION_COLUMNS = (str, object)
+    EXTENSIBLE_MODEL_SELECTION_COLUMNS = (str, object)
 
     def __init__(self, refresh_func, model):
         self._refresh_func = refresh_func
@@ -426,7 +426,7 @@ class PreviewCommonModificationsSimple(object):
         previewers = [PreviewReplaceSpacesWithUnderscores,PreviewReplaceAllNonAlphanumericWithUnderscores,PreviewToUpper,PreviewToLower,PreviewToTitle]
 
         # config widget
-        previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.PREVIEWS_SELECTION_COLUMNS)
+        previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.EXTENSIBLE_MODEL_SELECTION_COLUMNS)
         previews_combobox = gtk.ComboBox(previews_model)
         cell = gtk.CellRendererText()
         previews_combobox.pack_start(cell)
