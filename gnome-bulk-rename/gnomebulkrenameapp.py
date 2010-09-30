@@ -742,11 +742,36 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         idx = self._previews_combobox.get_active()
         if idx >= 0:
             state["current_preview_short_description"] = filtered_previews_model[idx][0] 
-            
+        
+        # preview
+        visibility_entries = {}
+        for row in self._previews_model:
+            visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]] = row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]
+        state["item_visibility_preview"] = visibility_entries
+        
+        # sorting 
+        visibility_entries = {}
+        for row in self._sorting_model:
+            visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]] = row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]
+        state["item_visibility_sorting"] = visibility_entries
+        
         pickle.dump(state, open(os.path.join(config.config_dir, "state"), "w"))
 
 
     def _restore_state(self):
+        
+        def restore_extensible_model(model, name):
+            key = "item_visibility_" + name 
+            if key in state:
+                visibility_entries = state[key]
+                for row in model:
+                    if row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION] in visibility_entries:
+                        row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]]
+                        if row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]:
+                            row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP] = row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]
+                        else:
+                            row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP] = "".join(['<span color="gray">', row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION], '</span>'])  
+
         # state restore
         statesavefilename = os.path.join(config.config_dir, "state")
         if not os.path.isfile(statesavefilename):
@@ -754,7 +779,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         
         self._logger.debug("Restoring state")
         state = pickle.load(open(statesavefilename, "r"))
-        
+
+        # extensible models
+        restore_extensible_model(self._sorting_model, "sorting")
+        restore_extensible_model(self._previews_model, "preview")
+
         # previews combo box
         tar = 0 
         if "current_preview_short_description" in state:
