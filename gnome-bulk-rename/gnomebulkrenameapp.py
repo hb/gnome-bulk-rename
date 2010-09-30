@@ -458,9 +458,9 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         advanced_button.connect("clicked", self._on_advanced_button_clicked)
         buttonbox.add(advanced_button)
 
-        cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
-        cancel_button.connect("clicked", lambda button, self : self.quit(), self)
-        buttonbox.add(cancel_button)        
+        close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
+        close_button.connect("clicked", lambda button, self : self.quit(), self)
+        buttonbox.add(close_button)        
 
         buttonbox.add(self._rename_button)
         
@@ -468,6 +468,8 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
             self._current_preview.grab_focus()
         except AttributeError:
             pass
+        
+        
         
         self._window.show_all()
 
@@ -478,7 +480,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
     def _on_advanced_button_clicked(self, button):
         cmd = [row[constants.FILES_MODEL_COLUMN_GFILE].get_uri() for row in self._files_model]
-        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename3.py") # TODO
+        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename.py") # TODO
         try:
             subprocess.Popen(cmd)
         except OSError, ee:
