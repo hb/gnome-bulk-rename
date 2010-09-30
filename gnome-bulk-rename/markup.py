@@ -23,6 +23,10 @@ import constants
 
 class MarkupNoop(object):
     """No additional markup"""
+    
+    short_description = "No markup"
+    priority = 0.1
+    
     @staticmethod
     def markup(model):
         for row in model:
@@ -32,6 +36,10 @@ class MarkupNoop(object):
 
 class MarkupColor(object):
     """Colored markup"""
+    
+    short_description = "Colored markup"
+    default = True
+    priority = 0.2
     
     def __init__(self):
         self._matcher = difflib.SequenceMatcher()

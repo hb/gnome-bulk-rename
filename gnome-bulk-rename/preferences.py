@@ -23,10 +23,12 @@ import constants
 
 class Window(object):
     
-    def __init__(self, previews_model, sorting_model):
+    def __init__(self, previews_model, sorting_model, markups_model, markup_changed_cb):
         self._window = None
         self._previews_model = previews_model
         self._sorting_model = sorting_model
+        self._markups_model = markups_model
+        self._markup_changed_cb = markup_changed_cb
     
     
     def show(self):
@@ -51,6 +53,7 @@ class Window(object):
 
         notebook.append_page(self._setup_extensible_model_tab(self._previews_model), gtk.Label("Previewers"))
         notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), gtk.Label("Sorting"))
+        notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), gtk.Label("Markup"))
 
         # button box
         buttonbox = gtk.HButtonBox()
@@ -63,17 +66,25 @@ class Window(object):
         buttonbox.add(close_button)
         
 
-    def _setup_extensible_model_tab(self, model):
+    def _setup_extensible_model_tab(self, model, markup=False):
 
         def toggled_callback(cell, path, model=None):
             iter = model.get_iter(path)
             is_active = not cell.get_active()
-            short_desc = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION)
-            if is_active:
-                model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, short_desc)
-            else:
-                 model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, "".join(['<span color="gray">', short_desc, '</span>']))
+            if markup and not is_active:
+                return
+            if not markup:
+                short_desc = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION)
+                if is_active:
+                    model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, short_desc)
+                else:
+                    model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, "".join(['<span color="gray">', short_desc, '</span>']))
+            if markup:
+                for row in model:
+                    row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
             model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE, is_active)
+            if markup:
+                self._markup_changed_cb(model.get_path(iter)[0])
 
         def on_selection_changed(selection, infobutton):
             (model, iter) = selection.get_selected()
@@ -105,6 +116,7 @@ class Window(object):
         
         textrenderer = gtk.CellRendererText()
         togglerenderer = gtk.CellRendererToggle()
+        togglerenderer.set_radio(markup)
         togglerenderer.set_property("activatable", True)
         togglerenderer.connect('toggled', toggled_callback, model)
         # column "active"

@@ -574,6 +574,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         def sorting_order_check_toggled(checkbutton, model, combobox, config_container):
             sorting_combobox_changed(combobox, model, checkbutton, config_container)
 
+        def markup_toggled(new_row_num):
+            self._current_markup = self._markups_model[new_row_num][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]()
+            self.refresh()
 
         # application name
         glib.set_application_name(constants.application_name)
@@ -684,6 +687,20 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._previews_combobox.connect("changed", self._on_previews_combobox_changed)
         alignment.add(self._previews_combobox)
 
+        # markup
+        self._markups_model = collect.get_extensible_model("markup", ["markup"])
+        for row in self._markups_model:
+            try:
+                if row[constants.EXTENSIBLE_MODEL_COLUMN_OBJECT].default:
+                    row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = True
+                else:
+                    row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
+            except AttributeError:
+                row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
+            
+        filteredmodel = self._markups_model.filter_new()
+        filteredmodel.set_visible_column(constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
+
         # config area
         alignment = gtk.Alignment()
         alignment.set_padding(18, 0, 0, 0)
@@ -712,7 +729,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         buttonbox.add(self._rename_button)
 
         # prefs window
-        self._preferences_window = preferences.Window(self._previews_model, self._sorting_model)
+        self._preferences_window = preferences.Window(self._previews_model, self._sorting_model, self._markups_model, markup_toggled)
 
         # restore state
         self._restore_state()
@@ -734,6 +751,14 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
     
     def _save_state(self):
+        
+        def save_extensible_model(model, name):
+            visibility_entries = {}
+            key = "item_visibility_" + name
+            for row in model:
+                visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]] = row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]
+            state[key] = visibility_entries
+        
         self._logger.debug("Saving state")
         state = {}
         
@@ -743,17 +768,14 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         if idx >= 0:
             state["current_preview_short_description"] = filtered_previews_model[idx][0] 
         
-        # preview
-        visibility_entries = {}
-        for row in self._previews_model:
-            visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]] = row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]
-        state["item_visibility_preview"] = visibility_entries
+        # extensible models
+        save_extensible_model(self._previews_model, "preview")
+        save_extensible_model(self._sorting_model, "sorting")
         
-        # sorting 
-        visibility_entries = {}
-        for row in self._sorting_model:
-            visibility_entries[row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]] = row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]
-        state["item_visibility_sorting"] = visibility_entries
+        # markup
+        for row in self._markups_model:
+            if row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]:
+                state["current_markup"] = row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]
         
         pickle.dump(state, open(os.path.join(config.config_dir, "state"), "w"))
 
@@ -784,6 +806,18 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         restore_extensible_model(self._sorting_model, "sorting")
         restore_extensible_model(self._previews_model, "preview")
 
+        # markup
+        row_num = None
+        if "current_markup" in state:
+            for irow, row in enumerate(self._markups_model):
+                if row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION] == state["current_markup"]:
+                    row_num = irow
+                    self._current_markup = row[constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]()
+                    break
+        if row_num is not None:
+            for irow, row in enumerate(self._markups_model):
+                row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = (irow == row_num)
+                
         # previews combo box
         tar = 0 
         if "current_preview_short_description" in state:
