@@ -164,7 +164,11 @@ class GnomeBulkRenameAppBase(object):
             self._set_info_bar_according_to_problem_level(0)
 
     def _on_tree_selection_changed(self, selection):
-        self._remove_action.set_sensitive(selection.count_selected_rows() > 0)
+        # removing does not exist in simple mode
+        try:
+            self._remove_action.set_sensitive(selection.count_selected_rows() > 0)
+        except AttributeError:
+            pass
 
     def _on_rename_button_clicked(self, button):
         self._logger.debug("Starting rename operation")
