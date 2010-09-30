@@ -133,29 +133,3 @@ def get_extensible_model(modulname, required_attributes):
                                                                  model.get_value(iter2, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY)))
     model.set_sort_column_id(gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, gtk.SORT_ASCENDING)
     return model
-
-    
-
-def get_sort_from_modulename(modulename):
-    """Look for sortable objects in the module named modulename"""
-    try:
-        module = __import__(modulename)
-    except ImportError:
-        _logger.error("Could not import module file: '%s'" % modulename)
-        return []
-    
-    _logger.debug("Inspecting module '%s' for loggers" % modulename)
-    sorts = []
-    for entry in dir(module):
-        if entry.startswith("_"):
-            continue
-        classobj = getattr(module, entry)
-        if hasattr(classobj, "sort") and hasattr(classobj, "short_description"):
-            try:
-                if classobj.skip:
-                    continue
-            except AttributeError:
-                pass
-            sorts.append(classobj)
-    _logger.debug(("`Found %d sort objects: " % len(sorts))+ ", ".join([repr(sorttype) for sorttype in sorts]))
-    return sorts

@@ -541,7 +541,15 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         GnomeBulkRenameAppBase.__init__(self, uris)
 
         def sorting_combobox_changed(combobox, files_model, order_check, config_container):
-            instance = combobox.get_model()[combobox.get_active()][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
+
+            gtkutils.clear_gtk_container(config_container)
+
+            idx = combobox.get_active()
+            if idx == -1:
+                files_model.set_sort_column_id(constants.SORT_ID_MANUAL, gtk.SORT_ASCENDING)
+                return
+
+            instance = combobox.get_model()[idx][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
             if not hasattr(instance, "short_description"):
                 sort_id = constants.SORT_ID_MANUAL
             else:
@@ -551,7 +559,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             else:
                 order = gtk.SORT_ASCENDING
 
-            gtkutils.clear_gtk_container(config_container)
 
             if sort_id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
@@ -847,20 +854,32 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
 
     def _on_previews_combobox_changed(self, combobox):
-        previewclass = combobox.get_model()[combobox.get_active()][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
-        self._current_preview = previewclass(self.refresh, self._files_model)
-
-        # configuration
+        # clean up
         child = self._config_container.get_child()
         if child:
             self._config_container.remove(child)
-        try:
-            config_widget = self._current_preview.get_config_widget()
-        except AttributeError:
-            config_widget = gtk.Alignment()
-            config_widget.add(gtk.Label("This mode doesn't have any configuration options."))
-        self._config_container.add(config_widget)
-        self._config_container.show_all()
+
+        # new setting
+        idx = combobox.get_active()
+        if idx == -1:
+            self._current_preview = PreviewNoop(self.refresh, self._files_model)
+            if len(combobox.get_model()) == 0:
+                config_widget = gtk.Alignment()
+                config_widget.add(gtk.Label("You don't have any previewers active.\nPlease check your preferences."));
+                self._config_container.add(config_widget)
+                self._config_container.show_all()
+        else:
+            previewclass = combobox.get_model()[idx][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
+            self._current_preview = previewclass(self.refresh, self._files_model)
+
+            # configuration
+            try:
+                config_widget = self._current_preview.get_config_widget()
+            except AttributeError:
+                config_widget = gtk.Alignment()
+                config_widget.add(gtk.Label("This mode doesn't have any configuration options."))
+            self._config_container.add(config_widget)
+            self._config_container.show_all()
 
         # refresh
         self.refresh()
