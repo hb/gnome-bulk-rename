@@ -142,10 +142,41 @@ class GnomeBulkRenameAppBase(object):
             valid = True
         
         if valid:
+
+            # possibly restrict to file name part
             try:
-                self._current_preview.preview(self._files_model)
+                active = self._restrict_to_name_part_combo.get_active()
+            except AttributeError:
+                active = 0
+            
+            # when full filename is used, we can use the file model directly
+            if active == 0:
+                model = self._files_model
+            else:
+                model = []
+                for row in self._files_model:
+                    (root, ext) = os.path.splitext(row[0])
+                    if active == 1:
+                        model.append([root, root, ext])
+                    else:
+                        if len(ext) > 0:
+                            dot = "."
+                        else:
+                            dot = ""
+                        model.append([ext[1:], ext[1:], root, dot])
+
+            try:
+                self._current_preview.preview(model)
             except Exception, ee:
                 valid = False
+            else:
+                # if necessary, write back results
+                if active == 1:
+                    for ii,row in enumerate(model):
+                        self._files_model[ii][1] = row[1]+row[2]
+                elif active == 2:
+                    for ii,row in enumerate(model):
+                        self._files_model[ii][1] = row[2]+row[3]+row[1]
         
         # reset if an error occured or invalid in the first place
         if not valid:
@@ -669,7 +700,38 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
+
+        # restrictions
+
+        alignment = gtk.Alignment()
+        alignment.set_padding(6, 0, 0, 0)
+        vbox.pack_start(alignment, False)
+        label = gtk.Label()
+        label.set_markup("<b>Restrictions:</b>")
+        alignment.add(label)
+
+        # combo box files / only extension / filename without extension
+        alignment = gtk.Alignment(xscale=1)
+        alignment.set_padding(6, 0, 18, 0)
+        vbox.pack_start(alignment, False)
+
+        hbox = gtk.HBox(False, 12)
+        alignment.add(hbox)
+
+        hbox.pack_start(gtk.Label("Name parts:"), False)
+
+        combobox = gtk.combo_box_new_text()
+        combobox.append_text("Whole filename")
+        combobox.append_text("Filename without extension")
+        combobox.append_text("Extension only")
+        combobox.set_active(0)
+        hbox.pack_start(combobox)
+        self._restrict_to_name_part_combo = combobox
+        self._restrict_to_name_part_combo.connect("changed", lambda combo, self : self.refresh(), self)
         
+        # hsep
+        vbox.pack_start(gtk.HSeparator(), False, False, 4)
+
         # mode selection
         alignment = gtk.Alignment()
         alignment.set_padding(6, 0, 0, 0)
@@ -777,7 +839,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         # extensible models
         save_extensible_model(self._previews_model, "preview")
         save_extensible_model(self._sorting_model, "sorting")
-        
+ 
+        # restrict to name part combo
+        state["restrict_to_name_part_combo"] = self._restrict_to_name_part_combo.get_active() 
+
         # markup
         for row in self._markups_model:
             if row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]:
@@ -833,6 +898,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     tar = ii
                     break
         self._previews_combobox.set_active(tar)
+        
+        # restrict to name part combo
+        if "restrict_to_name_part_combo" in state:
+            self._restrict_to_name_part_combo.set_active(state["restrict_to_name_part_combo"])
 
 
     def _on_action_add(self, dummy=None):
