@@ -30,6 +30,8 @@ import glib
 import gio
 import gtk
 
+from gettext import gettext as _
+
 from preview import PreviewNoop,PreviewReplaceLongestSubstring, PreviewCommonModificationsSimple
 from markup import MarkupColor
 from sort import Manually as SortManually
@@ -67,7 +69,7 @@ class GnomeBulkRenameAppBase(object):
         self._rename_button = gtk.Button()
         button_hbox = gtk.HBox(False, 2)
         button_hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_BUTTON))
-        button_hbox.pack_start(gtk.Label("Rename"))
+        button_hbox.pack_start(gtk.Label(_("Rename")))
         self._rename_button.add(button_hbox)
         self._rename_button.connect("clicked", self._on_rename_button_clicked)
 
@@ -437,7 +439,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
     def __init__(self, uris=None):
         GnomeBulkRenameAppBase.__init__(self, uris)
 
-        glib.set_application_name(constants.application_name + "-simple")
+        glib.set_application_name(config.appname + "-simple")
 
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
         self._logger.debug("init")
@@ -616,7 +618,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             self.refresh()
 
         # application name
-        glib.set_application_name(constants.application_name)
+        glib.set_application_name(config.appname)
 
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
         self._logger.debug("init")
@@ -983,7 +985,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         """Credits dialog"""
         authors = ["Holger Berndt <hb@gnome.org>"]
         about = gtk.AboutDialog()
-        about.set_version("v%s" % constants.__version__)
+        about.set_version("v%s" % config.version)
         about.set_authors(authors)
         about.set_license("GNU Lesser General Public License v2.1")
         about.set_transient_for(self._window)

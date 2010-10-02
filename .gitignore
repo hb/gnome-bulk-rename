@@ -6,5 +6,12 @@ autom4te.cache
 config.log
 config.status
 configure
+gnome-bulk-rename.desktop
 po/stamp-it
 po/POTFILES
+po/.intltool-merge-cache
+po/gnome-bulk-rename.pot
+py-compile
+bin/gnome-bulk-rename
+intltool-*.in
+m4/intltool.m4

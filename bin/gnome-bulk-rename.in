@@ -9,17 +9,33 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
-import constants
-import config
+LIBDIR = '@LIBDIR@'
 
+def _get_root_dir():
+    return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
+
+def _in_devel():
+    return os.path.exists(os.path.join(_get_root_dir(), '.git'))
 
 def main(argv=None):
+    
+    folder = os.path.dirname(os.path.abspath(__file__))
+    if _in_devel():
+        root = os.path.split(folder)[0]
+    else:
+        root = os.path.join(LIBDIR, 'gnome-bulk-rename', 'python')
+    root = os.path.join(root, "gnome-bulk-rename")
+    # add gnome-bulk-rename path to python path
+    if not root in sys.path:
+        sys.path.insert(0, root)
+
+    from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
+    import config
 
     # argument parsing
     if argv is None:
         argv = sys.argv
-    parser = OptionParser(usage="%prog", version="%prog " + constants.__version__, description="Bulk rename tool for GNOME")
+    parser = OptionParser(usage="%prog", version="%prog " + config.version, description="Bulk rename tool for GNOME")
     parser.add_option("-s", "--simple", action="store_true")
     (opt, args) = parser.parse_args(args=argv[1:])
 
@@ -30,7 +46,7 @@ def main(argv=None):
     logdir = os.path.join(config.config_dir, "log")
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
-    logfilename = constants.application_name
+    logfilename = config.appname
     if opt.simple:
         logfilename += "-simple"
     logfile =  os.path.join(logdir, logfilename + ".log")
