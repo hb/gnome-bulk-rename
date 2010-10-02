@@ -5,6 +5,9 @@ from optparse import OptionParser
 import logging
 import os
 
+import locale
+import gettext
+
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -22,13 +25,28 @@ def main(argv=None):
     folder = os.path.dirname(os.path.abspath(__file__))
     if _in_devel():
         root = os.path.split(folder)[0]
+        localedir = os.path.join(root, 'locale')
     else:
         root = os.path.join(LIBDIR, 'gnome-bulk-rename', 'python')
+        localedir = "@DATADIR@/locale"
+    print localedir
+
     root = os.path.join(root, "gnome-bulk-rename")
     # add gnome-bulk-rename path to python path
     if not root in sys.path:
         sys.path.insert(0, root)
 
+    # Added for i18n
+    try:
+        locale.setlocale(locale.LC_ALL, '')
+        locale.bindtextdomain('gnome-bulk-rename', localedir)
+        locale.textdomain('gnome-bulk-rename')
+
+        gettext.bindtextdomain('gnome-bulk-rename', localedir)
+        gettext.textdomain('gnome-bulk-rename')
+    except:
+        print "Couldn't set locale, reverting to C locale"
+    
     from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
     import config
 

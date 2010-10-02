@@ -12,19 +12,11 @@ EXTRA_DIST = \
 	AUTHORS \
 	RELEASE
 
-DISTCLEANFILES = \
-	intltool-extract \
-    intltool-merge \
-    intltool-update
-
 CLEANFILES = \
     $(desktop_DATA)
 
 
 EXTRA_DIST += \
-    intltool-extract.in \
-    intltool-merge.in \
-    intltool-update.in \
     $(desktop_in_files)
 
 

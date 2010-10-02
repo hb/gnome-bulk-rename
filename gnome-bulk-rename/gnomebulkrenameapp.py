@@ -330,7 +330,7 @@ class GnomeBulkRenameAppBase(object):
             
         elif highest_level == 2:
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_ERROR, gtk.ICON_SIZE_LARGE_TOOLBAR))
-            hbox.pack_start(gtk.Label("Rename not possible"))
+            hbox.pack_start(gtk.Label(_("Rename not possible")))
             hbox.show_all()
             content_area = self._files_info_bar.get_content_area()
             gtkutils.clear_gtk_container(content_area)
