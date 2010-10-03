@@ -987,7 +987,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         about = gtk.AboutDialog()
         about.set_version("v%s" % config.version)
         about.set_authors(authors)
-        about.set_license("GNU Lesser General Public License v2.1")
+        about.set_license(config.copying)
         about.set_transient_for(self._window)
         about.connect("response", lambda dlg, unused: dlg.destroy())
         about.show()
