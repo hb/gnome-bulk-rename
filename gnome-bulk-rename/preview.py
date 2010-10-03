@@ -121,7 +121,7 @@ class PreviewReplaceLongestSubstring(object):
         self._replacement_string_entry = gtk.Entry()
         self._config_widget.pack_start(self._replacement_string_entry)
 
-        self._on_model_changed(model)
+        self.model_changed(model)
 
         self._replacement_string_entry.connect("changed", self._on_replacement_string_entry_changed)
 
@@ -134,7 +134,7 @@ class PreviewReplaceLongestSubstring(object):
         return self._config_widget
 
     def post_rename(self, model):
-        self._on_model_changed(model)
+        self.model_changed(model)
         
     def grab_focus(self):
         self._replacement_string_entry.grab_focus()
@@ -148,7 +148,7 @@ class PreviewReplaceLongestSubstring(object):
         self._refresh_func()
 
 
-    def _on_model_changed(self, model, path=None, iter=None):
+    def model_changed(self, model, path=None, iter=None):
         self._longest_common_substring = long_substr(model)
         if len(self._longest_common_substring) < 2:
             self._valid = False
@@ -456,6 +456,11 @@ class PreviewCommonModificationsSimple(object):
         except AttributeError:
             pass
 
+    def model_changed(self, model):
+        try:
+            self._current_previewer.model_changed(model)
+        except AttributeError:
+            pass
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
@@ -516,12 +521,20 @@ class PreviewCommonModifications(object):
     def get_config_widget(self):
         return self._config_widget
 
+
     def post_rename(self, model):
         try:
             self._current_previewer.post_rename(model)
         except AttributeError:
             pass
 
+
+    def model_changed(self, model):
+        try:
+            self._current_previewer.model_changed(model)
+        except AttributeError:
+            pass
+        
     @property
     def valid(self):
         try:

@@ -129,11 +129,42 @@ class GnomeBulkRenameAppBase(object):
             self._add_to_files_model(uris)
 
 
-    def refresh(self, did_just_rename=False, model_changed=False):
+    def refresh(self, did_just_rename=False, model_changed=False, name_part_restriction_changed=False):
         """Re-calculate previews"""
-        if did_just_rename or model_changed:
+        
+
+        
+        if did_just_rename:
             try:
                 self._current_preview.post_rename(self._files_model)
+            except AttributeError:
+                pass
+
+        # possibly restrict to file name part
+        try:
+            active = self._restrict_to_name_part_combo.get_active()
+        except AttributeError:
+            active = 0
+        
+        # when full filename is used, we can use the file model directly
+        if active == 0:
+            model = self._files_model
+        else:
+            model = []
+            for row in self._files_model:
+                (root, ext) = os.path.splitext(row[0])
+                if active == 1:
+                    model.append([root, root, ext])
+                else:
+                    if len(ext) > 0:
+                        dot = "."
+                    else:
+                        dot = ""
+                    model.append([ext[1:], ext[1:], root, dot])
+        
+        if name_part_restriction_changed or model_changed:
+            try:
+                self._current_preview.model_changed(model)
             except AttributeError:
                 pass
 
@@ -142,31 +173,7 @@ class GnomeBulkRenameAppBase(object):
             valid = self._current_preview.valid
         except AttributeError:
             valid = True
-        
         if valid:
-
-            # possibly restrict to file name part
-            try:
-                active = self._restrict_to_name_part_combo.get_active()
-            except AttributeError:
-                active = 0
-            
-            # when full filename is used, we can use the file model directly
-            if active == 0:
-                model = self._files_model
-            else:
-                model = []
-                for row in self._files_model:
-                    (root, ext) = os.path.splitext(row[0])
-                    if active == 1:
-                        model.append([root, root, ext])
-                    else:
-                        if len(ext) > 0:
-                            dot = "."
-                        else:
-                            dot = ""
-                        model.append([ext[1:], ext[1:], root, dot])
-
             try:
                 self._current_preview.preview(model)
             except Exception, ee:
@@ -729,7 +736,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         combobox.set_active(0)
         hbox.pack_start(combobox)
         self._restrict_to_name_part_combo = combobox
-        self._restrict_to_name_part_combo.connect("changed", lambda combo, self : self.refresh(), self)
+        self._restrict_to_name_part_combo.connect("changed", lambda combo, self : self.refresh(name_part_restriction_changed=True), self)
         
         # hsep
         vbox.pack_start(gtk.HSeparator(), False, False, 4)
