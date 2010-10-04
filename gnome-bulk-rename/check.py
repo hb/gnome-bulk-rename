@@ -21,6 +21,8 @@ pygtk.require('2.0')
 import gtk
 import gio
 
+from gettext import gettext as _
+
 import constants
 
 
@@ -80,7 +82,7 @@ class Checker(object):
 
 
     def _check_for_empty_targets(self):
-        msg = "<b>ERROR:</b> Empty target name"
+        msg = "<b>%s:</b> %s" % (_("ERROR"), _("Empty target name"))
         for ii,row in enumerate(self._model):
             if row[1] == "":
                 self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
@@ -88,7 +90,7 @@ class Checker(object):
                 self._add_tooltip_msg(ii, msg)
                     
     def _check_slash_in_target(self):
-        msg = "<b>ERROR:</b> Slash in target name"
+        msg = "<b>%s:</b> %s" % (_("ERROR"), _("Slash in target name"))
         for ii,row in enumerate(self._model):
             if "/" in row[1]:
                 self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
@@ -103,7 +105,7 @@ class Checker(object):
             if len(value) > 1:
                 double_uris.append(key)
 
-        msg = "<b>ERROR:</b> Double output filepath"
+        msg = "<b>%s:</b> %s" % (_("ERROR"), _("Double output filepath"))
         registered = set()
         found_problem = False
         for uri in double_uris:
@@ -143,7 +145,7 @@ class Checker(object):
                     existing_files.add(new_name)
 
         # mark files
-        msg = "<b>WARNING:</b> Target filename already exists on the filesystem"
+        msg = "<b>%s:</b> %s" % (_("WARNING"), _("Target filename already exists on the filesystem"))
         for uri in existing_files:
             for idx in self._dict_target_uri_to_indices[uri]:
                 if self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] != gtk.STOCK_DIALOG_ERROR:

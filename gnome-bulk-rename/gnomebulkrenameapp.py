@@ -233,15 +233,15 @@ class GnomeBulkRenameAppBase(object):
             for row in self._files_model:
                 if row[constants.FILES_MODEL_COLUMN_TOOLTIP]:
                     for entry in row[constants.FILES_MODEL_COLUMN_TOOLTIP].split("\n"):
-                        if entry.startswith("<b>ERROR") or entry.startswith("<b>WARNING"):
+                        if entry.startswith("<b>%s" % _("ERROR")) or entry.startswith("<b>%s" % _("WARNING")):
                             problems.add(entry)
             if problems:
                 if response_id == constants.FILES_INFO_BAR_RESPONSE_ID_INFO_WARNING:
                     dlg_type = gtk.MESSAGE_WARNING
-                    msg = "The following problems might prevent renaming:"
+                    msg = _("The following problems might prevent renaming:")
                 else:
                      dlg_type = gtk.MESSAGE_ERROR
-                     msg = "The following problems prevent renaming:" 
+                     msg = _("The following problems prevent renaming:") 
                 dlg = gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=gtk.BUTTONS_CLOSE, message_format=msg)
                 dlg.format_secondary_markup("\n".join(problems))
                 dlg.show_all()
@@ -328,7 +328,7 @@ class GnomeBulkRenameAppBase(object):
         
         if highest_level == 1:
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR))
-            hbox.pack_start(gtk.Label("Expect problems when trying to rename"))
+            hbox.pack_start(gtk.Label(_("Expect problems when trying to rename")))
             hbox.show_all()
             content_area.pack_start(hbox, False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
@@ -360,15 +360,15 @@ class GnomeBulkRenameAppBase(object):
             hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_LARGE_TOOLBAR), False)
             self._files_info_bar.set_message_type(gtk.MESSAGE_WARNING)
             if not was_undo:
-                hbox.pack_start(gtk.Label("Problems occured during rename"), False)
+                hbox.pack_start(gtk.Label(_("Problems occured during rename")), False)
             else:
-                hbox.pack_start(gtk.Label("Problems occured during undo"), False)
+                hbox.pack_start(gtk.Label(_("Problems occured during undo")), False)
         else:
             self._files_info_bar.set_message_type(gtk.MESSAGE_INFO)
             if not was_undo:
-                hbox.pack_start(gtk.Label("Files successfully renamed"), False)
+                hbox.pack_start(gtk.Label(_("Files successfully renamed")), False)
             else:
-                hbox.pack_start(gtk.Label("Undo successful"), False)
+                hbox.pack_start(gtk.Label(_("Undo successful")), False)
         
         hbox.show_all()
         content_area.pack_start(hbox, False)
@@ -453,7 +453,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_title("Simple Bulk Rename")
+        self._window.set_title(_("Bulk Rename"))
         self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
         self._window.connect("delete-event", self._on_delete_event)
@@ -465,7 +465,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # description
         hbox = gtk.HBox(False, 0)
         hbox.pack_start(gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG), False)
-        hbox.pack_start(gtk.Label("You can choose among some common rename operations,\nor press the 'Advanced' button for more options."), False)
+        hbox.pack_start(gtk.Label(_("You can choose among some common rename operations,\nor press the 'Advanced' button for more options.")), False)
         vbox.pack_start(hbox, False)
 
         # add file list
@@ -494,7 +494,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         buttonbox.set_spacing(12)
         vbox.pack_start(buttonbox, False)
 
-        advanced_button = gtk.Button("Advanced")
+        advanced_button = gtk.Button(_("Advanced"))
         advanced_button.connect("clicked", self._on_advanced_button_clicked)
         buttonbox.add(advanced_button)
 
@@ -527,9 +527,9 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
             self._logger.error("Command invokation failed: '%s'" % "".join(cmd))
             # open an error dialog
             dlg = gtk.MessageDialog(self._window, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_ERROR, gtk.BUTTONS_CLOSE)
-            dlg.set_title("Switch failed")
-            dlg.set_markup("<b>Switch to advanced mode failed</b>")
-            dlg.format_secondary_markup("The command '%s' could not be found." % cmd[0])
+            dlg.set_title(_("Switch failed"))
+            dlg.set_markup("<b>%s</b>" % _("Switch to advanced mode failed"))
+            dlg.format_secondary_markup(_("The command '%s' could not be found.") % cmd[0])
             dlg.run()
             dlg.destroy()
         else:
@@ -636,14 +636,14 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         actions = [("file", None, "_File"),
                    ("edit", None, "_Edit"),
                    ("view", None, "_View"),
-                   ("add", gtk.STOCK_ADD, "Add files", None, "Add files to the list", self._on_action_add),
-                   ("addfolders", None, "Add folders", None, "Add folders to the list", self._on_action_add_folders),
-                   ("remove", gtk.STOCK_REMOVE, "Remove files", None, "Remove selected files from the list", self._on_action_remove),
-                   ("clear", gtk.STOCK_CLEAR, "Clear", None, "Removes all files from the list", self._on_action_clear),
-                   ("preferences", gtk.STOCK_PREFERENCES, "Preferences", None, "Preferences", self._on_action_preferences),
-                   ("quit", gtk.STOCK_QUIT, "_Quit", "<Control>q", "Quit the Program", self._on_action_quit),
-                   ("help", None, "_Help"),
-                   ("about", gtk.STOCK_ABOUT, "About", None, "About this program", self._on_action_about)
+                   ("add", gtk.STOCK_ADD, _("Add files ..."), None, _("Add files to the list"), self._on_action_add),
+                   ("addfolders", None, _("Add folders ..."), None, _("Add folders to the list"), self._on_action_add_folders),
+                   ("remove", gtk.STOCK_REMOVE, _("Remove files"), None, _("Remove selected files from the list"), self._on_action_remove),
+                   ("clear", gtk.STOCK_CLEAR, _("Clear"), None, _("Removes all files from the list"), self._on_action_clear),
+                   ("preferences", gtk.STOCK_PREFERENCES, _("Preferences"), None, _("Preferences"), self._on_action_preferences),
+                   ("quit", gtk.STOCK_QUIT, _("_Quit"), "<Control>q", _("Quit the Program"), self._on_action_quit),
+                   ("help", None, _("_Help")),
+                   ("about", gtk.STOCK_ABOUT, _("About"), None, _("About this program"), self._on_action_about)
                    ]
         self._action_group.add_actions(actions)
         self._action_group.add_action(self._undo.get_undo_action())
@@ -655,7 +655,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # window
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_title("Bulk Rename")
+        self._window.set_title(_("Bulk Rename"))
         self._window.set_size_request(450, 600)
         self._window.set_border_width(4)
         self._window.connect("destroy", gtk.main_quit)
@@ -675,7 +675,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         vbox.pack_start(align, False)
         hbox = gtk.HBox(False, 12)
         align.add(hbox)
-        hbox.pack_start(gtk.Label("Sort"), False)
+        hbox.pack_start(gtk.Label(_("Sort")), False)
 
         self._sorting_model = collect.get_extensible_model("sort", ["sort"])
         for ii,row in enumerate(self._sorting_model):
@@ -685,7 +685,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             self._sorting_model[ii][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT] = inst
             self._files_model.set_sort_func(inst.sort_id, inst.sort)
         # insert "manually" as first element
-        self._sorting_model.insert(0, ("manually", SortManually(), 0., True, "manually"))
+        self._sorting_model.insert(0, (_("manually"), SortManually(), 0., True, _("manually")))
 
         filteredmodel = self._sorting_model.filter_new()
         filteredmodel.set_visible_column(constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
@@ -695,7 +695,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         sorting_combobox.pack_start(cell, True)
         sorting_combobox.add_attribute(cell, "text", 0)
         hbox.pack_start(sorting_combobox, False)
-        order_check = gtk.CheckButton("descending")
+        order_check = gtk.CheckButton(_("descending"))
         order_check.set_sensitive(False)
         sort_config_container = gtk.HBox(False, 0)
         order_check.connect("toggled", sorting_order_check_toggled, self._files_model, sorting_combobox, sort_config_container)
@@ -716,7 +716,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         alignment.set_padding(6, 0, 0, 0)
         vbox.pack_start(alignment, False)
         label = gtk.Label()
-        label.set_markup("<b>Restrictions:</b>")
+        label.set_markup("<b>%s:</b>" % "Restrictions")
         alignment.add(label)
 
         # combo box files / only extension / filename without extension
@@ -727,12 +727,12 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox = gtk.HBox(False, 12)
         alignment.add(hbox)
 
-        hbox.pack_start(gtk.Label("Name parts:"), False)
+        hbox.pack_start(gtk.Label(_("Name parts:")), False)
 
         combobox = gtk.combo_box_new_text()
-        combobox.append_text("Whole filename")
-        combobox.append_text("Filename without extension")
-        combobox.append_text("Extension only")
+        combobox.append_text(_("Whole filename"))
+        combobox.append_text(_("Filename without extension"))
+        combobox.append_text(_("Extension only"))
         combobox.set_active(0)
         hbox.pack_start(combobox)
         self._restrict_to_name_part_combo = combobox
@@ -746,7 +746,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         alignment.set_padding(6, 0, 0, 0)
         vbox.pack_start(alignment, False)
         label = gtk.Label()
-        label.set_markup("<b>Mode:</b>")
+        label.set_markup("<b>%s:</b>" % "Mode")
         alignment.add(label)
 
         # previews
@@ -783,7 +783,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         alignment.set_padding(18, 0, 0, 0)
         vbox.pack_start(alignment, False)
         label = gtk.Label()
-        label.set_markup("<b>Configuration:</b>")
+        label.set_markup("<b>%s:</b>" % "Configuration")
         alignment.add(label)
         
         self._config_container = gtk.Alignment(xscale=1)
@@ -914,7 +914,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
 
     def _on_action_add(self, dummy=None):
-        dlg = gtk.FileChooserDialog("Add..", self._window, gtk.FILE_CHOOSER_ACTION_OPEN, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        dlg = gtk.FileChooserDialog(_("Add ..."), self._window, gtk.FILE_CHOOSER_ACTION_OPEN, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         dlg.set_default_response(gtk.RESPONSE_OK)
         dlg.set_select_multiple(True)
         response = dlg.run()
@@ -937,13 +937,13 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                 if fileinfo.get_file_type() == gio.FILE_TYPE_DIRECTORY:
                     add_folder_children(child, uris, include_hidden)
         
-        dlg = gtk.FileChooserDialog("Add..", self._window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        dlg = gtk.FileChooserDialog(_("Add ..."), self._window, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         dlg.set_default_response(gtk.RESPONSE_OK)
         dlg.set_select_multiple(True)
         vbox = gtk.VBox(False, 4)
-        recursive_check = gtk.CheckButton("Select recursively")
+        recursive_check = gtk.CheckButton(_("Select recursively"))
         vbox.pack_start(recursive_check)
-        include_hidden_folders_check = gtk.CheckButton("Include hidden files and folders")
+        include_hidden_folders_check = gtk.CheckButton(_("Include hidden files and folders"))
         vbox.pack_start(include_hidden_folders_check)
         vbox.show_all()
         dlg.set_extra_widget(vbox)
@@ -1012,7 +1012,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             self._current_preview = PreviewNoop(self.refresh, self._files_model)
             if len(combobox.get_model()) == 0:
                 config_widget = gtk.Alignment()
-                config_widget.add(gtk.Label("You don't have any previewers active.\nPlease check your preferences."));
+                config_widget.add(gtk.Label(_("You don't have any previewers active.\nPlease check your preferences.")));
                 self._config_container.add(config_widget)
                 self._config_container.show_all()
         else:
@@ -1024,7 +1024,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                 config_widget = self._current_preview.get_config_widget()
             except AttributeError:
                 config_widget = gtk.Alignment()
-                config_widget.add(gtk.Label("This mode doesn't have any configuration options."))
+                config_widget.add(gtk.Label(_("This mode doesn't have any configuration options.")))
             self._config_container.add(config_widget)
             self._config_container.show_all()
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-bulk-rename master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-10-03 00:44+0200\n"
+"POT-Creation-Date: 2010-10-04 21:47+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Holger Berndt <hb@gnome.org>\n"
 "Language-Team: \n"
@@ -18,16 +18,354 @@ msgstr ""
 
 #: ../gnome-bulk-rename.desktop.in.h:1
 msgid "GNOME bulk file rename utility"
-msgstr ""
+msgstr "GNOME Hilfsmittel zum massenhaften Umbenennen von Dateien"
 
 #: ../gnome-bulk-rename.desktop.in.h:2
 msgid "Rename your files"
-msgstr ""
+msgstr "Benenne deine Dateien um"
+
+#: ../gnome-bulk-rename/check.py:85 ../gnome-bulk-rename/check.py:93
+#: ../gnome-bulk-rename/check.py:108
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:236
+msgid "ERROR"
+msgstr "FEHLER"
+
+#: ../gnome-bulk-rename/check.py:85
+msgid "Empty target name"
+msgstr "Zielname ist leer"
+
+#: ../gnome-bulk-rename/check.py:93
+msgid "Slash in target name"
+msgstr "Schrägstrich im Zielnamen"
+
+#: ../gnome-bulk-rename/check.py:108
+msgid "Double output filepath"
+msgstr "Doppelter Zielname"
+
+#. mark files
+#: ../gnome-bulk-rename/check.py:148
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:236
+msgid "WARNING"
+msgstr "WARNUNG"
+
+#: ../gnome-bulk-rename/check.py:148
+msgid "Target filename already exists on the filesystem"
+msgstr "Zielname exisiert bereits auf dem Dateisystem"
 
 #: ../gnome-bulk-rename/gnomebulkrenameapp.py:72
 msgid "Rename"
-msgstr ""
+msgstr "Umbenennen"
 
-#: ../gnome-bulk-rename/gnomebulkrenameapp.py:333
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:241
+msgid "The following problems might prevent renaming:"
+msgstr "Folgende Probleme könnten ein Umbenennen verhindern:"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:244
+msgid "The following problems prevent renaming:"
+msgstr "Folgende Probleme verhindern ein Umbenennen:"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:331
+msgid "Expect problems when trying to rename"
+msgstr "Erwarten Sie Probleme mit dem Umbenennen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:340
 msgid "Rename not possible"
 msgstr "Umbenennen nicht möglich"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:363
+msgid "Problems occured during rename"
+msgstr "Beim Umbenennen sind Probleme aufgetreten"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:365
+msgid "Problems occured during undo"
+msgstr "Beim Rückgängigmachen sind Probleme aufgetreten"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:369
+msgid "Files successfully renamed"
+msgstr "Die Dateien wurden erfolgreich umbenannt"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:371
+msgid "Undo successful"
+msgstr "Rückgängigmachen erfolgreich"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:456
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:658
+msgid "Bulk Rename"
+msgstr "Massenhaftes Umbenennen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:468
+msgid ""
+"You can choose among some common rename operations,\n"
+"or press the 'Advanced' button for more options."
+msgstr ""
+"Die können zwischen einigen gängigen Methoden wählen,\n"
+"oder die Schaltfläche 'Erweitert' wählen, um mehr Optionen zu erhalten."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:497
+msgid "Advanced"
+msgstr "Erweitert"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:530
+msgid "Switch failed"
+msgstr "Wechsel gescheitert"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:531
+msgid "Switch to advanced mode failed"
+msgstr "Wechsel in den erweiterten Modus gescheitert"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:532
+#, python-format
+msgid "The command '%s' could not be found."
+msgstr "Das Kommando '%s' konnte nicht gefunden werden."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:639
+msgid "Add files ..."
+msgstr "Dateien hinzufügen ..."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:639
+msgid "Add files to the list"
+msgstr "Dateien zur Liste hinzufügen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:640
+msgid "Add folders ..."
+msgstr "Ordner hinzufügen ..."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:640
+msgid "Add folders to the list"
+msgstr "Dateien zur Liste hinzufügen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:641
+msgid "Remove files"
+msgstr "Dateien entfernen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:641
+msgid "Remove selected files from the list"
+msgstr "Ausgewählte Dateien aus der Liste entfernen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:642
+msgid "Clear"
+msgstr "Leeren"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:642
+msgid "Removes all files from the list"
+msgstr "Alle Dateien aus der Liste entfernen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:643
+msgid "Preferences"
+msgstr "Einstellungen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:644
+msgid "_Quit"
+msgstr "Beenden"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:644
+msgid "Quit the Program"
+msgstr "Das Programm beenden"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:645
+msgid "_Help"
+msgstr "Hilfe"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:646
+msgid "About"
+msgstr "Info"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:646
+msgid "About this program"
+msgstr "Informationen über dieses Programm"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:678
+msgid "Sort"
+msgstr "Sortierung"
+
+#. insert "manually" as first element
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:688
+msgid "manually"
+msgstr "manuell"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:698
+msgid "descending"
+msgstr "absteigend"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:730
+msgid "Name parts:"
+msgstr "Namensteil:"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:733
+msgid "Whole filename"
+msgstr "Vollständiger Dateiname"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:734
+msgid "Filename without extension"
+msgstr "Dateiname ohne Endung"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:735
+msgid "Extension only"
+msgstr "Dateiendung"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:917
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:940
+msgid "Add ..."
+msgstr "Hinzufügen ..."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:944
+msgid "Select recursively"
+msgstr "Rekursiv auswählen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:946
+msgid "Include hidden files and folders"
+msgstr "Verborgene Dateien und Ordner einschliessen"
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:1015
+msgid ""
+"You don't have any previewers active.\n"
+"Please check your preferences."
+msgstr ""
+"Sie haben keine Vorschau-Module geladen.\n"
+"Bitte überprüfen Sie Ihre Einstellungen."
+
+#: ../gnome-bulk-rename/gnomebulkrenameapp.py:1027
+msgid "This mode doesn't have any configuration options."
+msgstr "Dieser Modus hat keine Einstellungen."
+
+#: ../gnome-bulk-rename/markup.py:31
+msgid "No markup"
+msgstr "Keine Markierungen"
+
+#: ../gnome-bulk-rename/markup.py:44
+msgid "Colored markup"
+msgstr "Farbige Markierungen"
+
+#: ../gnome-bulk-rename/preferences.py:46
+msgid "Bulk Rename Preferences"
+msgstr "Einstellungen zum massenhaften Umbenennen von Dateien"
+
+#: ../gnome-bulk-rename/preferences.py:56
+msgid "Previewers"
+msgstr "Vorschau"
+
+#: ../gnome-bulk-rename/preferences.py:57
+msgid "Sorting"
+msgstr "Sortierung"
+
+#: ../gnome-bulk-rename/preferences.py:58
+msgid "Markup"
+msgstr "Markierungen"
+
+#: ../gnome-bulk-rename/preview.py:83
+msgid "Replace spaces with underscores"
+msgstr "Leerzeichen in Unterstriche konvertieren"
+
+#: ../gnome-bulk-rename/preview.py:94
+msgid "Replace all non-alphanumeric characters with underscores"
+msgstr "Alle nicht-alphanumerischen Zeichen durch Unterstriche ersetzen"
+
+#: ../gnome-bulk-rename/preview.py:107
+msgid "Modify common name part"
+msgstr "Gemeinsamen Teil des Namens verändern"
+
+#: ../gnome-bulk-rename/preview.py:154
+msgid "File names don't have a common substring."
+msgstr "Dateien haben keinen gemeinsamen Namensanteil."
+
+#: ../gnome-bulk-rename/preview.py:157
+#, python-format
+msgid "Replace the part <b>%s</b> with"
+msgstr "Ersetzen von <b>%s</b> mit"
+
+#: ../gnome-bulk-rename/preview.py:171
+msgid "Search / replace"
+msgstr "Suchen / Ersetzen"
+
+#: ../gnome-bulk-rename/preview.py:184
+msgid "Search for:"
+msgstr "Suche nach:"
+
+#: ../gnome-bulk-rename/preview.py:190
+msgid "Replace with:"
+msgstr "Ersetze mit:"
+
+#: ../gnome-bulk-rename/preview.py:195 ../gnome-bulk-rename/sort.py:41
+msgid "Case insensitive"
+msgstr "Groß-/Kleinschreibung vernachlässigen"
+
+#: ../gnome-bulk-rename/preview.py:199
+msgid "Regular expressions"
+msgstr "Regulärer Ausdruck"
+
+#: ../gnome-bulk-rename/preview.py:255
+msgid "Convert to upper case"
+msgstr "In Großbuchstaben konvertieren"
+
+#: ../gnome-bulk-rename/preview.py:268
+msgid "Convert to lower case"
+msgstr "In Kleinbuchstaben konvertieren"
+
+#: ../gnome-bulk-rename/preview.py:281
+msgid "Convert to title case"
+msgstr "Großbuchstaben am Wortanfang"
+
+#: ../gnome-bulk-rename/preview.py:294
+msgid "Enumerations"
+msgstr "Aufzählungen"
+
+#: ../gnome-bulk-rename/preview.py:309
+msgid "Starting value:"
+msgstr "Anfangswert:"
+
+#: ../gnome-bulk-rename/preview.py:321
+msgid "Increment:"
+msgstr "Inkrement:"
+
+#: ../gnome-bulk-rename/preview.py:333
+msgid "Zero padding:"
+msgstr "Auffüllen mit Nullen:"
+
+#: ../gnome-bulk-rename/preview.py:345
+msgid "Text:"
+msgstr "Text:"
+
+#: ../gnome-bulk-rename/preview.py:354
+msgid "Format:"
+msgstr "Format:"
+
+#: ../gnome-bulk-rename/preview.py:356 ../gnome-bulk-rename/preview.py:377
+msgid "Number - Text - Old Name"
+msgstr "Nummer - Text - Alter Name"
+
+#: ../gnome-bulk-rename/preview.py:357 ../gnome-bulk-rename/preview.py:382
+msgid "Old Name - Text - Number"
+msgstr " Alter Name - Text - Nummer"
+
+#: ../gnome-bulk-rename/preview.py:358 ../gnome-bulk-rename/preview.py:387
+msgid "Text - Number"
+msgstr "Text - Nummer"
+
+#: ../gnome-bulk-rename/preview.py:359 ../gnome-bulk-rename/preview.py:392
+msgid "Number - Text"
+msgstr "Nummer - Text"
+
+#: ../gnome-bulk-rename/preview.py:414
+msgid "Simple common modifications"
+msgstr "Gängige einfach Modifikationen"
+
+#: ../gnome-bulk-rename/preview.py:472
+msgid "Common specialized modifications"
+msgstr "Gängige spezialisierte Modifikationen"
+
+#: ../gnome-bulk-rename/sort.py:29
+msgid ""
+"No automatic sorting is applied to the files. It is possible to rearrange "
+"the files by drag and drop."
+msgstr ""
+"Die Dateien werden nicht automatisch sortiert. Es ist jedoch möglich, die "
+"Dateien durch Ziehen und Fallenlassen mit der Maus manuell zu sortieren."
+
+#. TRANSLATORS: This string is used in a selection for sorting
+#: ../gnome-bulk-rename/sort.py:34
+msgid "by name"
+msgstr "nach Name"
+
+#: ../gnome-bulk-rename/sort.py:36
+msgid "Sort the files by their current file name."
+msgstr "Dateien nach ihrem aktuellen Dateinamen sortieren."

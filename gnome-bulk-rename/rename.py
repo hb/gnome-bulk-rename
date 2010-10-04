@@ -176,7 +176,7 @@ class Rename(object):
             (iRow, folder_uri, old_display_name, new_display_name) = dat
             if iRow is not None:
                 self._model[iRow][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                self._model[iRow][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+                self._model[iRow][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
             _logger.warning("Could not rename file '%s' to '%s': '%s'" % (old_display_name, new_display_name, error_msg))
 
 
@@ -227,7 +227,7 @@ class Rename(object):
         def _rename_back_on_final_errors(successful_renames, errors):
             for id, error_msg in errors:
                 self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
-                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>ERROR:</b> " + error_msg
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
             
             self._done_cb(len(successful_renames), len(errors), results)
 

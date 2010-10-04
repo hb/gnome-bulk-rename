@@ -2,4 +2,9 @@
 # Please keep this file sorted alphabetically.
 # [encoding: UTF-8]
 gnome-bulk-rename.desktop.in
+gnome-bulk-rename/check.py
 gnome-bulk-rename/gnomebulkrenameapp.py
+gnome-bulk-rename/markup.py
+gnome-bulk-rename/preferences.py
+gnome-bulk-rename/preview.py
+gnome-bulk-rename/sort.py

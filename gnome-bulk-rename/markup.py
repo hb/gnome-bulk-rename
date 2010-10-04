@@ -19,12 +19,16 @@
 Markup-like objects need to implement the markup member function."""
 
 import difflib
+
+from gettext import gettext as _
+
 import constants
+
 
 class MarkupNoop(object):
     """No additional markup"""
     
-    short_description = "No markup"
+    short_description = _("No markup")
     priority = 0.1
     
     @staticmethod
@@ -37,7 +41,7 @@ class MarkupNoop(object):
 class MarkupColor(object):
     """Colored markup"""
     
-    short_description = "Colored markup"
+    short_description = _("Colored markup")
     default = True
     priority = 0.2
     

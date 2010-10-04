@@ -19,6 +19,8 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+from gettext import gettext as _
+
 import constants
 
 class Window(object):
@@ -41,7 +43,7 @@ class Window(object):
         
         self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self._window.set_position(gtk.WIN_POS_MOUSE)
-        self._window.set_title("Bulk Rename Preferences")
+        self._window.set_title(_("Bulk Rename Preferences"))
         self._window.set_border_width(4)
         self._window.set_default_size(450, 400)
 
@@ -51,9 +53,9 @@ class Window(object):
         notebook = gtk.Notebook()
         vbox.pack_start(notebook)
 
-        notebook.append_page(self._setup_extensible_model_tab(self._previews_model), gtk.Label("Previewers"))
-        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), gtk.Label("Sorting"))
-        notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), gtk.Label("Markup"))
+        notebook.append_page(self._setup_extensible_model_tab(self._previews_model), gtk.Label(_("Previewers")))
+        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), gtk.Label(_("Sorting")))
+        notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), gtk.Label(_("Markup")))
 
         # button box
         buttonbox = gtk.HButtonBox()
@@ -140,18 +142,4 @@ class Window(object):
         selection = treeview.get_selection()
         selection.connect("changed", on_selection_changed, button)
                 
-        return tab_vbox
-
-
-    def _setup_sorting_tab(self):
-
-        tab_vbox = gtk.VBox(False, 0)
-        tab_vbox.set_border_width(12)
-        scrolledwin = gtk.ScrolledWindow()
-        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        tab_vbox.pack_start(scrolledwin)
-
-        scrolledwin.add_with_viewport(gtk.Label("Foo"))
-
         return tab_vbox

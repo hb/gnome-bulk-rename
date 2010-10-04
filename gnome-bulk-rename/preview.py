@@ -44,6 +44,8 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+from gettext import gettext as _
+
 import gtkutils
 
 
@@ -64,9 +66,6 @@ def long_substr(model):
 class PreviewTranslate(object):
     """General character translation"""
 
-    short_description = "Character translation"
-    skip = True
-
     def __init__(self, refresh_func, model):
         self._translation_table = None
 
@@ -81,7 +80,7 @@ class PreviewTranslate(object):
 
 class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
 
-    short_description =  "Replace spaces with underscores"
+    short_description =  _("Replace spaces with underscores")
     skip = True
     priority = 0.4
     
@@ -92,7 +91,7 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
 
 class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
     
-    short_description = "Replace all non-alphanumeric characters with underscores"
+    short_description = _("Replace all non-alphanumeric characters with underscores")
     skip = True
 
     def __init__(self, refresh_func, model):
@@ -105,7 +104,7 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
 
 class PreviewReplaceLongestSubstring(object):
 
-    short_description = "Modify common name part"
+    short_description = _("Modify common name part")
     skip = True
 
     def __init__(self, refresh_func, model):
@@ -152,10 +151,10 @@ class PreviewReplaceLongestSubstring(object):
         self._longest_common_substring = long_substr(model)
         if len(self._longest_common_substring) < 2:
             self._valid = False
-            msg = "File names don't have a common substring." 
+            msg = _("File names don't have a common substring.")
         else:
             self._valid = True
-            msg = "".join(["Replace the part <b>", self._longest_common_substring, "</b> with"])
+            msg = _("Replace the part <b>%s</b> with") % self._longest_common_substring
         
         self._longest_common_substring_label.set_markup(msg)
 
@@ -169,7 +168,7 @@ class PreviewReplaceLongestSubstring(object):
 class PreviewSearchReplace(object):
     """Search/replace previewer"""
     
-    short_description = "Search / replace"
+    short_description = _("Search / replace")
     priority = 0.2
     
     def __init__(self, refresh_func, model):
@@ -182,22 +181,22 @@ class PreviewSearchReplace(object):
         self._config_widget.set_col_spacing(1, 12)
         self._config_widget.set_row_spacings(4)
 
-        self._config_widget.attach(gtk.Label("Search for:"), 0, 1, 0, 1, xoptions=gtk.SHRINK)
+        self._config_widget.attach(gtk.Label(_("Search for:")), 0, 1, 0, 1, xoptions=gtk.SHRINK)
         self._search_entry = gtk.Entry()
         self._search_entry.connect("changed", self._on_config_changed_cb)
         self._config_widget.attach(self._search_entry, 1, 2, 0, 1)
         self._search_string = ""
         
-        self._config_widget.attach(gtk.Label("Replace with:"), 0, 1, 1, 2, xoptions=gtk.SHRINK)
+        self._config_widget.attach(gtk.Label(_("Replace with:")), 0, 1, 1, 2, xoptions=gtk.SHRINK)
         self._replace_entry = gtk.Entry()
         self._replace_entry.connect("changed", self._on_config_changed_cb)
         self._config_widget.attach(self._replace_entry, 1, 2, 1, 2)
         
-        self._case_insensitive_check = gtk.CheckButton("Case insensitive")
+        self._case_insensitive_check = gtk.CheckButton(_("Case insensitive"))
         self._case_insensitive_check.connect("toggled", self._on_config_changed_cb)
         self._config_widget.attach(self._case_insensitive_check, 2, 3, 0, 1)
 
-        self._regular_expression_check = gtk.CheckButton("Regular expressions")
+        self._regular_expression_check = gtk.CheckButton(_("Regular expressions"))
         self._regular_expression_check.connect("toggled", self._on_config_changed_cb)
         self._config_widget.attach(self._regular_expression_check, 2, 3, 1, 2)
         
@@ -253,7 +252,7 @@ class PreviewSearchReplace(object):
 
 class PreviewToUpper(object):
     
-    short_description = "Convert to upper case"
+    short_description = _("Convert to upper case")
     skip = True
     
     def __init__(self, refresh_func, model):
@@ -266,7 +265,7 @@ class PreviewToUpper(object):
 
 class PreviewToLower(object):
     
-    short_description = "Convert to lower case"
+    short_description = _("Convert to lower case")
     skip = True
     
     def __init__(self, refresh_func, model):
@@ -279,7 +278,7 @@ class PreviewToLower(object):
 
 class PreviewToTitle(object):
     
-    short_description = "Convert to title case"
+    short_description = _("Convert to title case")
     skip = True
     
     def __init__(self, refresh_func, model):
@@ -292,7 +291,7 @@ class PreviewToTitle(object):
 
 class PreviewEnumerate(object):
     
-    short_description = "Enumerations"
+    short_description = _("Enumerations")
     priority = 0.6
     
     def __init__(self, refresh_func, model):
@@ -307,7 +306,7 @@ class PreviewEnumerate(object):
         
         # starting value
         row += 1
-        table.attach(gtk.Label("Starting value:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        table.attach(gtk.Label(_("Starting value:")), 0, 1, row, row+1, xoptions=gtk.FILL)
         adjustment = gtk.Adjustment(1, 1, 999999, 1, 10)
         align = gtk.Alignment()
         spinner = gtk.SpinButton(adjustment, 1, 0)
@@ -319,7 +318,7 @@ class PreviewEnumerate(object):
 
         # increment
         row += 1
-        table.attach(gtk.Label("Increment:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        table.attach(gtk.Label(_("Increment:")), 0, 1, row, row+1, xoptions=gtk.FILL)
         adjustment = gtk.Adjustment(1, 1, 1000, 1, 10)
         align = gtk.Alignment()
         spinner = gtk.SpinButton(adjustment, 1, 0)
@@ -331,7 +330,7 @@ class PreviewEnumerate(object):
 
         # zero padding
         row += 1
-        table.attach(gtk.Label("Zero padding:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        table.attach(gtk.Label(_("Zero padding:")), 0, 1, row, row+1, xoptions=gtk.FILL)
         adjustment = gtk.Adjustment(1, 1, 10, 1, 1)
         align = gtk.Alignment()
         spinner = gtk.SpinButton(adjustment, 1, 0)
@@ -343,7 +342,7 @@ class PreviewEnumerate(object):
 
         # text
         row += 1
-        table.attach(gtk.Label("Text:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        table.attach(gtk.Label(_("Text:")), 0, 1, row, row+1, xoptions=gtk.FILL)
         entry = gtk.Entry()
         entry.connect("changed", self._trigger_refresh)
         entry.set_text(".")
@@ -352,12 +351,12 @@ class PreviewEnumerate(object):
 
         # format
         row += 1
-        table.attach(gtk.Label("Format:"), 0, 1, row, row+1, xoptions=gtk.FILL)
+        table.attach(gtk.Label(_("Format:")), 0, 1, row, row+1, xoptions=gtk.FILL)
         combobox = gtk.combo_box_new_text()
-        combobox.append_text("Number - Text - Old Name")
-        combobox.append_text("Old Name - Text - Number")
-        combobox.append_text("Text - Number")
-        combobox.append_text("Number - Text")
+        combobox.append_text(_("Number - Text - Old Name"))
+        combobox.append_text(_("Old Name - Text - Number"))
+        combobox.append_text(_("Text - Number"))
+        combobox.append_text(_("Number - Text"))
         combobox.connect("changed", self._trigger_refresh)
         combobox.set_active(0)
         align = gtk.Alignment()
@@ -375,22 +374,22 @@ class PreviewEnumerate(object):
         format = self._format_combobox.get_active_text()
         text = self._text_entry.get_text()
 
-        if format == "Number - Text - Old Name":
+        if format == _("Number - Text - Old Name"):
             ff = "%%0%dd%%s%%s" % zero_padding  
             for row in model:
                 row[1] = ff % (value, text, row[0])
                 value += increment
-        elif format == "Old Name - Text - Number":
+        elif format == _("Old Name - Text - Number"):
             ff = "%%s%%s%%0%dd" % zero_padding
             for row in model:
                 row[1] = ff % (row[0], text, value)
                 value += increment
-        elif format == "Text - Number":
+        elif format == _("Text - Number"):
             ff = "%%s%%0%dd" % zero_padding
             for row in model:
                 row[1] = ff % (text, value)
                 value += increment
-        elif format == "Number - Text":
+        elif format == _("Number - Text"):
             ff = "%%0%dd%%s" % zero_padding
             for row in model:
                 row[1] = ff % (value, text)
@@ -412,7 +411,7 @@ class PreviewCommonModificationsSimple(object):
     """This previewer is intended as a fallback for the longest substring replacement
     in cases where no such substring exists"""
     
-    short_description = "Simple common modifications"
+    short_description = _("Simple common modifications")
     skip = True
     
     EXTENSIBLE_MODEL_SELECTION_COLUMNS = (str, object)
@@ -470,7 +469,7 @@ class PreviewCommonModificationsSimple(object):
 
 class PreviewCommonModifications(object):
     
-    short_description = "Common specialized modifications"
+    short_description = _("Common specialized modifications")
     priority = 0.1
 
     PREVIEWS_SELECTION_COLUMNS = (str, object)

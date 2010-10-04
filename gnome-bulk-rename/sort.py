@@ -21,22 +21,25 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+from gettext import gettext as _
+
 import constants
 
 class Manually(object):
-    description = "No automatic sorting is applied to the files. It is possible to rearrange the files by drag and drop."
+    description = _("No automatic sorting is applied to the files. It is possible to rearrange the files by drag and drop.")
 
 class ByName(object):
     
-    short_description = "by name"
+    # TRANSLATORS: This string is used in a selection for sorting
+    short_description = _("by name")
     priority = 0.2
-    description = "Sort the files by their current file name."
+    description = _("Sort the files by their current file name.")
 
     def __init__(self, treesortable):
         self._treesortable = treesortable
 
-        case_check = gtk.CheckButton("Case sensitive")
-        case_check.set_active(True)
+        case_check = gtk.CheckButton(_("Case insensitive"))
+        case_check.set_active(False)
         case_check.connect("toggled", self._on_case_check_toggled)
         self._config_widget = case_check
         
@@ -55,7 +58,7 @@ class ByName(object):
 
 
     def _on_case_check_toggled(self, checkbutton):
-        self._case_sensitive = checkbutton.get_active()
+        self._case_sensitive = not checkbutton.get_active()
 
         # trigger re-sort
         old_id_and_order = self._treesortable.get_sort_column_id()
