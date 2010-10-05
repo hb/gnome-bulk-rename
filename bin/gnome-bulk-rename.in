@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!@PYTHON@
 #
 # GNOME bulk rename utility
 # Copyright (C) 2010 Holger Berndt <hb@gnome.org>
