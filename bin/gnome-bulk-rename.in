@@ -27,8 +27,9 @@ import locale
 import gettext
 
 import pygtk
-pygtk.require('2.0')
-import gtk
+pygtk.require("2.0")
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 LIBDIR = '@LIBDIR@'
 
@@ -75,9 +76,6 @@ def main(argv=None):
     parser.add_option("-s", "--simple", action="store_true")
     (opt, args) = parser.parse_args(args=argv[1:])
 
-    # init
-    gtk.gdk.threads_init()
-    
     # logging
     logdir = os.path.join(config.config_dir, "log")
     if not os.path.isdir(logdir):
@@ -99,7 +97,7 @@ def main(argv=None):
         app = GnomeBulkRenameAppSimple(args)
     else:
         app = GnomeBulkRenameApp(args)
-    gtk.main()
+    Gtk.main()
 
 if __name__ == "__main__":
     #sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/Aaaa_Usb_stick_claus", "file:///home/hb/aaaa he he ho", "file:///home/hb/menu.doc"])

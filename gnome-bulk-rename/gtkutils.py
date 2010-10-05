@@ -17,11 +17,6 @@
 
 """Misc gtk+ utility functions"""
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-
-
 def clear_gtk_container(container):
     """Remove all children from a GtkContainer"""
     container.foreach(lambda child, cont : cont.remove(child), container)

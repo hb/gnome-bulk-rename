@@ -17,7 +17,11 @@
 
 """Various constants"""
 
-FILES_MODEL_COLUMNS = (str, str, str, str, object, str, str, str)
+import pygtk
+pygtk.require("2.0")
+from gi.repository import Gio
+
+FILES_MODEL_COLUMNS = (str, str, str, str, Gio.File, str, str, str)
 FILES_MODEL_COLUMN_ORIGINAL = 0         # code relies on that
 FILES_MODEL_COLUMN_PREVIEW = 1          # code relies on that
 FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2

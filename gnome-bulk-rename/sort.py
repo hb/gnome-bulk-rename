@@ -19,7 +19,7 @@
 
 import pygtk
 pygtk.require('2.0')
-import gtk
+from gi.repository import Gtk
 
 from gettext import gettext as _
 
@@ -38,7 +38,7 @@ class ByName(object):
     def __init__(self, treesortable):
         self._treesortable = treesortable
 
-        case_check = gtk.CheckButton(_("Case insensitive"))
+        case_check = Gtk.CheckButton(label=_("Case insensitive"))
         case_check.set_active(False)
         case_check.connect("toggled", self._on_case_check_toggled)
         self._config_widget = case_check
@@ -46,7 +46,7 @@ class ByName(object):
         self._case_sensitive = True
 
 
-    def sort(self, model, iter1, iter2):
+    def sort(self, model, iter1, iter2, user_data):
         if self._case_sensitive:
             return cmp(model.get_value(iter1, 0), model.get_value(iter2, 0))
         else:
@@ -62,5 +62,6 @@ class ByName(object):
 
         # trigger re-sort
         old_id_and_order = self._treesortable.get_sort_column_id()
-        self._treesortable.set_sort_column_id(gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, gtk.SORT_DESCENDING)
+#HHBTODO Gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID auf -2 gesetzt 
+        self._treesortable.set_sort_column_id(-2, Gtk.SortType.DESCENDING)
         self._treesortable.set_sort_column_id(*old_id_and_order)

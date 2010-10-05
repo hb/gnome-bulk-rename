@@ -16,10 +16,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 """Various checks"""
 
+import sys #only debug
+
 import pygtk
 pygtk.require('2.0')
-import gtk
-import gio
+from gi.repository import Gtk
+from gi.repository import Gio
 
 from gettext import gettext as _
 
@@ -42,7 +44,7 @@ class Checker(object):
 
     def clear_all_warnings_and_errors(self):
         for row in self._model:
-            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = None
+            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = ""
             row[constants.FILES_MODEL_COLUMN_TOOLTIP] = row[constants.FILES_MODEL_COLUMN_GFILE].get_uri()
 
 
@@ -85,7 +87,7 @@ class Checker(object):
         msg = "<b>%s:</b> %s" % (_("ERROR"), _("Empty target name"))
         for ii,row in enumerate(self._model):
             if row[1] == "":
-                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                 self.highest_problem_level = max(self.highest_problem_level, 2)
                 self._add_tooltip_msg(ii, msg)
                     
@@ -93,7 +95,7 @@ class Checker(object):
         msg = "<b>%s:</b> %s" % (_("ERROR"), _("Slash in target name"))
         for ii,row in enumerate(self._model):
             if "/" in row[1]:
-                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                 self.highest_problem_level = max(self.highest_problem_level, 2)
                 self._add_tooltip_msg(ii, msg)
         
@@ -111,7 +113,7 @@ class Checker(object):
         for uri in double_uris:
             for ii in self._dict_target_uri_to_indices[uri]:
                 if ii not in registered:
-                    self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                    self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                     self.highest_problem_level = max(self.highest_problem_level, 2)
                     found_problem = True
                     self._add_tooltip_msg(ii, msg)
@@ -139,17 +141,17 @@ class Checker(object):
                 continue
             new_name = row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]
             if new_name not in self.circular_uris:
-                parent = gio.File(uri=row[constants.FILES_MODEL_COLUMN_URI_DIRNAME])
+                parent = Gio.file_new_for_uri(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME])
                 file = parent.get_child_for_display_name(row[1])
-                if file.query_exists():
+                if file.query_exists(None):
                     existing_files.add(new_name)
 
         # mark files
         msg = "<b>%s:</b> %s" % (_("WARNING"), _("Target filename already exists on the filesystem"))
         for uri in existing_files:
             for idx in self._dict_target_uri_to_indices[uri]:
-                if self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] != gtk.STOCK_DIALOG_ERROR:
-                    self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_WARNING
+                if self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] != Gtk.STOCK_DIALOG_ERROR:
+                    self._model[idx][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_WARNING
                 self._add_tooltip_msg(idx, msg)
                 self.highest_problem_level = max(self.highest_problem_level, 1)
 

@@ -18,7 +18,7 @@
 import pygtk
 pygtk.require('2.0')
 import gobject
-import gtk
+from gi.repository import Gtk
 
 
 class Undo(gobject.GObject):
@@ -47,11 +47,11 @@ class Undo(gobject.GObject):
         self._redo_stack = []
 
         # actions
-        self._undo_action = gtk.Action(Undo.UNDO_ACTION_NAME, "Undo", None, gtk.STOCK_UNDO)
+        self._undo_action = Gtk.Action.new(Undo.UNDO_ACTION_NAME, "Undo", None, Gtk.STOCK_UNDO)
         self._undo_action.set_sensitive(False)
         self._undo_action.connect("activate", lambda action, undo : undo(), self.undo)
 
-        self._redo_action = gtk.Action(Undo.REDO_ACTION_NAME, "Redo", None, gtk.STOCK_REDO)
+        self._redo_action = Gtk.Action.new(Undo.REDO_ACTION_NAME, "Redo", None, Gtk.STOCK_REDO)
         self._redo_action.set_sensitive(False)
         self._redo_action.connect("activate", lambda action, redo : redo(), self.redo)
 

@@ -20,8 +20,8 @@ import logging
 
 import pygtk
 pygtk.require('2.0')
-import gio
-import gtk
+from gi.repository import Gio
+from gi.repository import Gtk
 
 
 import constants
@@ -45,7 +45,7 @@ def _rename(rename_map, done_callback):
         (user_data, done_cb) = cb_data
         try:
             new_gfile = gfile.set_display_name_finish(result)
-        except gio.Error, ee:
+        except RuntimeError, ee:
             errors.append((user_data, ee.message))
         else:
             successful_renames.append((user_data, new_gfile))
@@ -59,10 +59,11 @@ def _rename(rename_map, done_callback):
 
     for (gfile, new_display_name, user_data) in rename_map:
 
-        cancellable = gio.Cancellable()
+        cancellable = Gio.Cancellable()
         cancellables[gfile.get_uri()] = cancellable
 
-        gfile.set_display_name_async(new_display_name, _set_display_name_async_cb, cancellable=cancellable, user_data=(user_data, done_callback))
+#HHBTODO: G_PRIORITY_DEFAULT = 0 
+        gfile.set_display_name_async(new_display_name, 0, cancellable, _set_display_name_async_cb, (user_data, done_callback))
 
     return cancellables
 
@@ -175,7 +176,7 @@ class Rename(object):
         for dat, error_msg in errors:
             (iRow, folder_uri, old_display_name, new_display_name) = dat
             if iRow is not None:
-                self._model[iRow][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[iRow][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                 self._model[iRow][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
             _logger.warning("Could not rename file '%s' to '%s': '%s'" % (old_display_name, new_display_name, error_msg))
 
@@ -211,7 +212,7 @@ class Rename(object):
                     continue
                 
                 old_uri = folder_uri + old_display_name
-                gfile = gio.File(uri=old_uri)
+                gfile = Gio.file_new_for_uri(old_uri)
                 rename_map.append((gfile, prefix+new_display_name, (self._find_row_number_of_gfile(gfile), folder_uri, old_display_name, prefix+new_display_name)))
 
         return rename_map
@@ -226,7 +227,7 @@ class Rename(object):
 
         def _rename_back_on_final_errors(successful_renames, errors):
             for id, error_msg in errors:
-                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = gtk.STOCK_DIALOG_ERROR
+                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                 self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
             
             self._done_cb(len(successful_renames), len(errors), results)

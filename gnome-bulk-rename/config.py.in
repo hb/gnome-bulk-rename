@@ -19,14 +19,14 @@ import os.path
 
 import pygtk
 pygtk.require('2.0')
-import glib
+from gi.repository import GLib
 
 appname = '@PACKAGE_NAME@'
 version = '@GBR_VERSION@'
 
 
-config_dir = os.path.join(glib.get_user_config_dir(), appname)
-user_data_dir = os.path.join(glib.get_user_data_dir(), appname)
+config_dir = os.path.join(GLib.get_user_config_dir(), appname)
+user_data_dir = os.path.join(GLib.get_user_data_dir(), appname)
 
 copying = """                  GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999

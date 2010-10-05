@@ -42,7 +42,7 @@ import re
 
 import pygtk
 pygtk.require('2.0')
-import gtk
+from gi.repository import Gtk
 
 from gettext import gettext as _
 
@@ -114,11 +114,11 @@ class PreviewReplaceLongestSubstring(object):
         self._valid = True
 
         # config widget
-        self._config_widget = gtk.HBox(False, 8)
-        self._longest_common_substring_label = gtk.Label()
-        self._config_widget.pack_start(self._longest_common_substring_label, False)
-        self._replacement_string_entry = gtk.Entry()
-        self._config_widget.pack_start(self._replacement_string_entry)
+        self._config_widget = Gtk.HBox.new(False, 8)
+        self._longest_common_substring_label = Gtk.Label()
+        self._config_widget.pack_start(self._longest_common_substring_label, False, True, 0)
+        self._replacement_string_entry = Gtk.Entry()
+        self._config_widget.pack_start(self._replacement_string_entry, True, True, 0)
 
         self.model_changed(model)
 
@@ -176,29 +176,29 @@ class PreviewSearchReplace(object):
         
         self._valid = True
         
-        self._config_widget = gtk.Table(2, 3)
+        self._config_widget = Gtk.Table.new(2, 3, False)
         self._config_widget.set_col_spacing(0, 12)
         self._config_widget.set_col_spacing(1, 12)
         self._config_widget.set_row_spacings(4)
 
-        self._config_widget.attach(gtk.Label(_("Search for:")), 0, 1, 0, 1, xoptions=gtk.SHRINK)
-        self._search_entry = gtk.Entry()
+        self._config_widget.attach(Gtk.Label(label=_("Search for:")), 0, 1, 0, 1, Gtk.AttachOptions.SHRINK, 0, 0, 0)
+        self._search_entry = Gtk.Entry()
         self._search_entry.connect("changed", self._on_config_changed_cb)
-        self._config_widget.attach(self._search_entry, 1, 2, 0, 1)
+        self._config_widget.attach_defaults(self._search_entry, 1, 2, 0, 1)
         self._search_string = ""
         
-        self._config_widget.attach(gtk.Label(_("Replace with:")), 0, 1, 1, 2, xoptions=gtk.SHRINK)
-        self._replace_entry = gtk.Entry()
+        self._config_widget.attach(Gtk.Label(label=_("Replace with:")), 0, 1, 1, 2, Gtk.AttachOptions.SHRINK, 0, 0, 0)
+        self._replace_entry = Gtk.Entry()
         self._replace_entry.connect("changed", self._on_config_changed_cb)
-        self._config_widget.attach(self._replace_entry, 1, 2, 1, 2)
+        self._config_widget.attach_defaults(self._replace_entry, 1, 2, 1, 2)
         
-        self._case_insensitive_check = gtk.CheckButton(_("Case insensitive"))
+        self._case_insensitive_check = Gtk.CheckButton(label=_("Case insensitive"))
         self._case_insensitive_check.connect("toggled", self._on_config_changed_cb)
-        self._config_widget.attach(self._case_insensitive_check, 2, 3, 0, 1)
+        self._config_widget.attach_defaults(self._case_insensitive_check, 2, 3, 0, 1)
 
-        self._regular_expression_check = gtk.CheckButton(_("Regular expressions"))
+        self._regular_expression_check = Gtk.CheckButton(label=_("Regular expressions"))
         self._regular_expression_check.connect("toggled", self._on_config_changed_cb)
-        self._config_widget.attach(self._regular_expression_check, 2, 3, 1, 2)
+        self._config_widget.attach_defaults(self._regular_expression_check, 2, 3, 1, 2)
         
         
     def preview(self, model):
@@ -298,7 +298,7 @@ class PreviewEnumerate(object):
         self._refresh_func = refresh_func
         
         # config widget
-        table = gtk.Table(4, 2)
+        table = Gtk.Table.new(4, 2, False)
         table.set_col_spacings(12)
         table.set_row_spacings(4)
 
@@ -306,62 +306,62 @@ class PreviewEnumerate(object):
         
         # starting value
         row += 1
-        table.attach(gtk.Label(_("Starting value:")), 0, 1, row, row+1, xoptions=gtk.FILL)
-        adjustment = gtk.Adjustment(1, 1, 999999, 1, 10)
-        align = gtk.Alignment()
-        spinner = gtk.SpinButton(adjustment, 1, 0)
-        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        table.attach(Gtk.Label(label=_("Starting value:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=999999, step_increment=1, page_increment=10)
+        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
+        spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
+        spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
         spinner.connect("value-changed", self._trigger_refresh)
         align.add(spinner)
-        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._start_value_spinner = spinner
 
         # increment
         row += 1
-        table.attach(gtk.Label(_("Increment:")), 0, 1, row, row+1, xoptions=gtk.FILL)
-        adjustment = gtk.Adjustment(1, 1, 1000, 1, 10)
-        align = gtk.Alignment()
-        spinner = gtk.SpinButton(adjustment, 1, 0)
-        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        table.attach(Gtk.Label(label=_("Increment:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=1000, step_increment=1, page_increment=10)
+        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
+        spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
+        spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
         spinner.connect("value-changed", self._trigger_refresh)
         align.add(spinner)
-        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._increment_spinner = spinner
 
         # zero padding
         row += 1
-        table.attach(gtk.Label(_("Zero padding:")), 0, 1, row, row+1, xoptions=gtk.FILL)
-        adjustment = gtk.Adjustment(1, 1, 10, 1, 1)
-        align = gtk.Alignment()
-        spinner = gtk.SpinButton(adjustment, 1, 0)
-        spinner.set_update_policy(gtk.UPDATE_IF_VALID)
+        table.attach(Gtk.Label(label=_("Zero padding:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=10, step_increment=1, page_increment=1)
+        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
+        spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
+        spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
         spinner.connect("value-changed", self._trigger_refresh)
         align.add(spinner)
-        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._zero_padding_spinner = spinner
 
         # text
         row += 1
-        table.attach(gtk.Label(_("Text:")), 0, 1, row, row+1, xoptions=gtk.FILL)
-        entry = gtk.Entry()
+        table.attach(Gtk.Label(label=_("Text:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        entry = Gtk.Entry()
         entry.connect("changed", self._trigger_refresh)
         entry.set_text(".")
-        table.attach(entry, 1, 2, row, row+1, xoptions=gtk.FILL)
+        table.attach(entry, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._text_entry = entry
 
         # format
         row += 1
-        table.attach(gtk.Label(_("Format:")), 0, 1, row, row+1, xoptions=gtk.FILL)
-        combobox = gtk.combo_box_new_text()
+        table.attach(Gtk.Label(label=_("Format:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        combobox = Gtk.ComboBoxText.new()
         combobox.append_text(_("Number - Text - Old Name"))
         combobox.append_text(_("Old Name - Text - Number"))
         combobox.append_text(_("Text - Number"))
         combobox.append_text(_("Number - Text"))
         combobox.connect("changed", self._trigger_refresh)
         combobox.set_active(0)
-        align = gtk.Alignment()
+        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
         align.add(combobox)
-        table.attach(align, 1, 2, row, row+1, xoptions=gtk.FILL)
+        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._format_combobox = combobox
         
         self._config_widget = table
@@ -425,10 +425,10 @@ class PreviewCommonModificationsSimple(object):
         previewers = [PreviewReplaceSpacesWithUnderscores,PreviewReplaceAllNonAlphanumericWithUnderscores,PreviewToUpper,PreviewToLower,PreviewToTitle]
 
         # config widget
-        previews_model = gtk.ListStore(*PreviewCommonModificationsSimple.EXTENSIBLE_MODEL_SELECTION_COLUMNS)
-        previews_combobox = gtk.ComboBox(previews_model)
-        cell = gtk.CellRendererText()
-        previews_combobox.pack_start(cell)
+        previews_model = Gtk.ListStore(*PreviewCommonModificationsSimple.EXTENSIBLE_MODEL_SELECTION_COLUMNS)
+        previews_combobox = Gtk.ComboBox(previews_model)
+        cell = Gtk.CellRendererText()
+        previews_combobox.pack_start(cell, True, True, 0)
         previews_combobox.add_attribute(cell, "text", 0)
         previews_combobox.connect("changed", self._on_previews_combobox_changed)
         self._config_widget = previews_combobox
@@ -486,26 +486,26 @@ class PreviewCommonModifications(object):
         previewers = [PreviewReplaceLongestSubstring, PreviewReplaceSpacesWithUnderscores, PreviewReplaceAllNonAlphanumericWithUnderscores,PreviewToUpper,PreviewToLower,PreviewToTitle]
 
         # config widget
-        self._config_widget = gtk.VBox(False, 4)
+        self._config_widget = Gtk.VBox.new(False, 4)
 
         # subconfig widget
-        self._subconfig_widget = gtk.VBox(False, 0)
+        self._subconfig_widget = Gtk.VBox.new(False, 0)
 
         # combo box for selection
-        previews_model = gtk.ListStore(*PreviewCommonModifications.PREVIEWS_SELECTION_COLUMNS)
-        previews_combobox = gtk.ComboBox(previews_model)
-        cell = gtk.CellRendererText()
-        previews_combobox.pack_start(cell)
+        previews_model = Gtk.ListStore(*PreviewCommonModifications.PREVIEWS_SELECTION_COLUMNS)
+        previews_combobox = Gtk.ComboBox(model=previews_model)
+        cell = Gtk.CellRendererText()
+        previews_combobox.pack_start(cell, True)
         previews_combobox.add_attribute(cell, "text", 0)
         previews_combobox.connect("changed", self._on_previews_combobox_changed)
-        self._config_widget.pack_start(previews_combobox, False)
+        self._config_widget.pack_start(previews_combobox, False, True, 0)
 
         for previewer in previewers:
             previews_model.append((previewer.short_description, previewer))
 
         previews_combobox.set_active(0)
 
-        self._config_widget.pack_start(self._subconfig_widget)
+        self._config_widget.pack_start(self._subconfig_widget, True, True, 0)
 
         self._config_widget.show_all()
 
@@ -547,7 +547,7 @@ class PreviewCommonModifications(object):
         gtkutils.clear_gtk_container(self._subconfig_widget)
         self._current_previewer = row[1](self._refresh_func, self._model)
         try:
-            self._subconfig_widget.pack_start(self._current_previewer.get_config_widget())
+            self._subconfig_widget.pack_start(self._current_previewer.get_config_widget(), True, True, 0)
         except AttributeError:
             pass
         

@@ -17,7 +17,7 @@
 
 import pygtk
 pygtk.require('2.0')
-import gtk
+from gi.repository import Gtk
 
 from gettext import gettext as _
 
@@ -41,29 +41,29 @@ class Window(object):
     
     def _setup(self):
         
-        self._window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self._window.set_position(gtk.WIN_POS_MOUSE)
+        self._window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        self._window.set_position(Gtk.WindowPosition.MOUSE)
         self._window.set_title(_("Bulk Rename Preferences"))
         self._window.set_border_width(4)
         self._window.set_default_size(450, 400)
 
-        vbox = gtk.VBox(False, 0)
+        vbox = Gtk.VBox.new(False, 0)
         self._window.add(vbox)
 
-        notebook = gtk.Notebook()
-        vbox.pack_start(notebook)
+        notebook = Gtk.Notebook()
+        vbox.pack_start(notebook, True, True, 0)
 
-        notebook.append_page(self._setup_extensible_model_tab(self._previews_model), gtk.Label(_("Previewers")))
-        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), gtk.Label(_("Sorting")))
-        notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), gtk.Label(_("Markup")))
+        notebook.append_page(self._setup_extensible_model_tab(self._previews_model), Gtk.Label(label=_("Previewers")))
+        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), Gtk.Label(label=_("Sorting")))
+        notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), Gtk.Label(label=_("Markup")))
 
         # button box
-        buttonbox = gtk.HButtonBox()
-        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox = Gtk.HButtonBox()
+        buttonbox.set_layout(Gtk.ButtonBoxStyle.END)
         buttonbox.set_spacing(12)
         vbox.pack_start(buttonbox, False, False, 4)
         
-        close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
+        close_button = Gtk.Button(stock=Gtk.STOCK_CLOSE)
         close_button.connect("clicked", lambda button, window : window.hide(), self._window)
         buttonbox.add(close_button)
         
@@ -86,7 +86,7 @@ class Window(object):
                     row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
             model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE, is_active)
             if markup:
-                self._markup_changed_cb(model.get_path(iter)[0])
+                self._markup_changed_cb(model.get_path(iter))
 
         def on_selection_changed(selection, infobutton):
             (model, iter) = selection.get_selected()
@@ -100,41 +100,40 @@ class Window(object):
         def on_info_button_clicked(button, treeview):
             (model, iter) = treeview.get_selection().get_selected()
             previewclass = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_OBJECT)
-            dlg = gtk.MessageDialog(parent=self._window, flags=gtk.DIALOG_DESTROY_WITH_PARENT, type=gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_CLOSE, message_format=model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION))
-            dlg.format_secondary_markup(previewclass.description)
+            dlg = Gtk.MessageDialog(parent=self._window, flags=Gtk.DialogFlags.DESTROY_WITH_PARENT, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.CLOSE, message_format=model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION))
+#HHBTODO            dlg.format_secondary_markup(previewclass.description)
             dlg.connect("response", lambda dlg, response_id : dlg.destroy())
             dlg.show_all()
 
-
-        tab_vbox = gtk.VBox(False, 0)
+        tab_vbox = Gtk.VBox.new(False, 0)
         tab_vbox.set_border_width(12)
-        scrolledwin = gtk.ScrolledWindow()
-        scrolledwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        scrolledwin.set_shadow_type(gtk.SHADOW_ETCHED_IN)
-        tab_vbox.pack_start(scrolledwin)
-        treeview = gtk.TreeView(model)
+        scrolledwin = Gtk.ScrolledWindow()
+        scrolledwin.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolledwin.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        tab_vbox.pack_start(scrolledwin, True, True, 0)
+        treeview = Gtk.TreeView(model=model)
         treeview.set_headers_visible(False)
         scrolledwin.add(treeview)
         
-        textrenderer = gtk.CellRendererText()
-        togglerenderer = gtk.CellRendererToggle()
+        textrenderer = Gtk.CellRendererText()
+        togglerenderer = Gtk.CellRendererToggle()
         togglerenderer.set_radio(markup)
         togglerenderer.set_property("activatable", True)
         togglerenderer.connect('toggled', toggled_callback, model)
         # column "active"
-        column = gtk.TreeViewColumn(None, togglerenderer, active=constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
+        column = Gtk.TreeViewColumn(None, togglerenderer, active=constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
         treeview.append_column(column)
         # column "original"
-        column = gtk.TreeViewColumn(None, textrenderer, markup=constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP)
+        column = Gtk.TreeViewColumn(None, textrenderer, markup=constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP)
         column.set_expand(True)
         treeview.append_column(column)
         
         # information button
-        buttonbox = gtk.HButtonBox()
-        buttonbox.set_layout(gtk.BUTTONBOX_END)
+        buttonbox = Gtk.HButtonBox()
+        buttonbox.set_layout(Gtk.ButtonBoxStyle.END)
         buttonbox.set_spacing(12)
         tab_vbox.pack_start(buttonbox, False, False, 8)
-        button = gtk.Button(stock=gtk.STOCK_INFO)
+        button = Gtk.Button(stock=Gtk.STOCK_INFO)
         button.set_sensitive(False)
         button.connect("clicked", on_info_button_clicked, treeview)
         buttonbox.add(button)
