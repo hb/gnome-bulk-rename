@@ -148,20 +148,21 @@ class Rename(object):
         results = RenameResults(self._model, two_pass_rename=False)
 
         def _rename_done_cb(successful_renames, errors):
-
             # update the model
             for dat, new_gfile in successful_renames:
-                (iRow, folder_uri, old_display_name, new_display_name) = dat
+                (folder_uri, old_display_name, new_display_name) = dat
                 results.rename_data.append((folder_uri, old_display_name, new_display_name))
-                if iRow is not None:
-                    self._model[iRow][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
-                    self._model[iRow][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                try:
+                    row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
+                    row[constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
+                    row[constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                except TypeError:
+                    pass
                 _logger.debug("Renamed '%s/%s' to '%s'" % (folder_uri, old_display_name, new_display_name))
 
             self._handle_rename_errors(errors)
 
             results.errors.extend(errors)
-
             # notify real caller
             self._done_cb(results)
 
@@ -174,10 +175,13 @@ class Rename(object):
     def _handle_rename_errors(self, errors):
         """Mark in model, and/or log in file"""
         for dat, error_msg in errors:
-            (iRow, folder_uri, old_display_name, new_display_name) = dat
-            if iRow is not None:
-                self._model[iRow][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-                self._model[iRow][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
+            (folder_uri, old_display_name, new_display_name) = dat
+            try:
+                row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
+                row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
+                row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), error_msg)
+            except TypeError:
+                pass
             _logger.warning("Could not rename file '%s' to '%s': '%s'" % (old_display_name, new_display_name, error_msg))
 
 
@@ -188,6 +192,9 @@ class Rename(object):
                 return ii
         return None
 
+    def _find_row_number_of_uri(self, uri):
+        """Returns row number, or None"""
+        return self._find_row_number_of_gfile(Gio.file_new_for_uri(uri))
 
     def _get_rename_map(self, files_to_rename, prefix=""):
         rename_map = []
@@ -202,7 +209,7 @@ class Rename(object):
                     continue
 
                 gfile = row[constants.FILES_MODEL_COLUMN_GFILE]
-                rename_map.append((gfile, prefix+new_display_name, (ii, folder_uri, old_display_name, prefix+new_display_name)))
+                rename_map.append((gfile, prefix+new_display_name, (folder_uri, old_display_name, prefix+new_display_name)))
                 
         else:
             for folder_uri, old_display_name, new_display_name in files_to_rename:
@@ -213,7 +220,7 @@ class Rename(object):
                 
                 old_uri = folder_uri + old_display_name
                 gfile = Gio.file_new_for_uri(old_uri)
-                rename_map.append((gfile, prefix+new_display_name, (self._find_row_number_of_gfile(gfile), folder_uri, old_display_name, prefix+new_display_name)))
+                rename_map.append((gfile, prefix+new_display_name, (folder_uri, old_display_name, prefix+new_display_name)))
 
         return rename_map
 
@@ -236,11 +243,14 @@ class Rename(object):
 
             # update the model
             for dat, new_gfile in successful_renames:
-                (iRow, folder_uri, old_display_name, new_display_name) = dat
+                (folder_uri, old_display_name, new_display_name) = dat
                 results.rename_data.append((folder_uri, old_display_name, new_display_name))
-                if iRow is not None:
-                    self._model[iRow][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
-                    self._model[iRow][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                try:
+                    row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
+                    row[constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
+                    row[constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
+                except TypeError:
+                    pass
                 
             self._handle_rename_errors(errors)
 
@@ -258,9 +268,9 @@ class Rename(object):
             # all successful renames to tmp names should be scheduled for renaming to final name
             rename_to_final_map = []
             for data, new_gfile in successful_renames:
-                (iRow, folder_uri, old_name, new_name) = data
-                news_display_name = new_name[len(prefix):]
-                rename_to_final_map.append((new_gfile, news_display_name, (iRow, folder_uri, old_name, news_display_name)))
+                (folder_uri, old_display_name, new_display_name) = data
+                news_display_name = new_display_name[len(prefix):]
+                rename_to_final_map.append((new_gfile, news_display_name, (folder_uri, old_display_name, news_display_name)))
             self._cancellables = _rename(rename_to_final_map, _rename_to_final_done_cb)
 
         # set up list for _rename to temporary file
