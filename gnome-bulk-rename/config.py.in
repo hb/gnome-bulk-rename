@@ -28,6 +28,9 @@ version = '@GBR_VERSION@'
 config_dir = os.path.join(GLib.get_user_config_dir(), appname)
 user_data_dir = os.path.join(GLib.get_user_data_dir(), appname)
 
+# Will be set during startup
+exec_script_filepath = None
+
 copying = """                  GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
 

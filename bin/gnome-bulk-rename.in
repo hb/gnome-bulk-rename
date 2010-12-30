@@ -22,6 +22,7 @@ import sys
 from optparse import OptionParser
 import logging
 import os
+import os.path
 
 import locale
 import gettext
@@ -32,7 +33,6 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 
 LIBDIR = '@LIBDIR@'
-
 
 def _get_root_dir():
     return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
@@ -69,6 +69,9 @@ def main(argv=None):
     from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
     import config
 
+    # set binary
+    config.exec_script_filepath = os.path.realpath(__file__)
+     
     # argument parsing
     if argv is None:
         argv = sys.argv

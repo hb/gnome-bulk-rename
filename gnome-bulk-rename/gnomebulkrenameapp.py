@@ -514,7 +514,8 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
     def _on_advanced_button_clicked(self, button):
         cmd = [row[constants.FILES_MODEL_COLUMN_GFILE].get_uri() for row in self._files_model]
-        cmd.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename/gnome-bulk-rename.py") # TODO
+        cmd.insert(0, config.exec_script_filepath)
+        
         try:
             subprocess.Popen(cmd)
         except OSError, ee:
@@ -523,7 +524,8 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
             dlg = Gtk.MessageDialog(self._window, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE)
             dlg.set_title(_("Switch failed"))
             dlg.set_markup("<b>%s</b>" % _("Switch to advanced mode failed"))
-            dlg.format_secondary_markup(_("The command '%s' could not be found.") % cmd[0])
+            dlg.set_property('secondary-use-markup', True)
+            dlg.set_property('secondary-text', _("The command '%s' could not be found.") % cmd[0])
             dlg.run()
             dlg.destroy()
         else:
