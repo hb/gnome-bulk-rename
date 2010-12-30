@@ -240,7 +240,8 @@ class GnomeBulkRenameAppBase(object):
                      dlg_type = Gtk.MessageType.ERROR
                      msg = _("The following problems prevent renaming:") 
                 dlg = Gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=Gtk.ButtonsType.CLOSE, message_format=msg)
-                dlg.format_secondary_markup("\n".join(problems))
+                dlg.set_property('secondary-use-markup', True)
+                dlg.set_property('secondary-text', "\n".join(problems))
                 dlg.show_all()
                 dlg.run()
                 dlg.destroy()
