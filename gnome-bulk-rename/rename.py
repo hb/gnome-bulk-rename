@@ -23,6 +23,7 @@ pygtk.require('2.0')
 from gi.repository import Gio
 from gi.repository import Gtk
 
+from gettext import gettext as _
 
 import constants
 
@@ -136,7 +137,6 @@ class Rename(object):
         else:
             self._two_pass_rename(files_to_rename)
 
-
     def cancel(self):
         """Cancels all outstanding operations."""
         for key,cancellable in self._cancellables.iteritems():
@@ -157,7 +157,7 @@ class Rename(object):
                     self._model[iRow][constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
                     self._model[iRow][constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
                 _logger.debug("Renamed '%s/%s' to '%s'" % (folder_uri, old_display_name, new_display_name))
-                
+
             self._handle_rename_errors(errors)
 
             results.errors.extend(errors)
