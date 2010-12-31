@@ -698,6 +698,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         hbox.pack_start(sort_config_container, True, True, 0)
         sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check, sort_config_container)
         sorting_combobox.set_active(0)
+        self._sorting_combobox = sorting_combobox
 
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget, True, True, 0)
@@ -834,18 +835,24 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._logger.debug("Saving state")
         state = {}
         
+        # sorting
+        filtered_sorting_model = self._sorting_combobox.get_model()
+        idx = self._sorting_combobox.get_active()
+        if idx >= 0:
+            state["current_sorting_short_description"] = filtered_sorting_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]         
+
         # previews combo box
         filtered_previews_model = self._previews_combobox.get_model()
         idx = self._previews_combobox.get_active()
         if idx >= 0:
-            state["current_preview_short_description"] = filtered_previews_model[idx][0] 
-        
+            state["current_preview_short_description"] = filtered_previews_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]          
+
+        # restrict to name part combo
+        state["restrict_to_name_part_combo"] = self._restrict_to_name_part_combo.get_active() 
+
         # extensible models
         save_extensible_model(self._previews_model, "preview")
         save_extensible_model(self._sorting_model, "sorting")
- 
-        # restrict to name part combo
-        state["restrict_to_name_part_combo"] = self._restrict_to_name_part_combo.get_active() 
 
         # markup
         for row in self._markups_model:
@@ -892,6 +899,16 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         if row_num is not None:
             for irow, row in enumerate(self._markups_model):
                 row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = (irow == row_num)
+        
+        # sorting combo box
+        tar = 0 
+        if "current_sorting_short_description" in state:
+            desc = state["current_sorting_short_description"]
+            for ii, row in enumerate(self._sorting_combobox.get_model()):
+                if row[0] == desc:
+                    tar = ii
+                    break
+        self._sorting_combobox.set_active(tar)        
                 
         # previews combo box
         tar = 0 
