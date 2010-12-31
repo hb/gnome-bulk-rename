@@ -837,15 +837,17 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._logger.debug("Saving state")
         state = {}
         
-        # sorting combo
+        # sorting combo and config
         filtered_sorting_model = self._sorting_combobox.get_model()
         idx = self._sorting_combobox.get_active()
         if idx >= 0:
             state["current_sorting_short_description"] = filtered_sorting_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]
+            ob = filtered_sorting_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
+            if hasattr(ob, "get_state") and callable(ob.get_state):
+                state["current_sorting_state"] = ob.get_state()
         
         # sorting order
         state["sorting_order_descending"] = self._sorting_order_check.get_active()
-                 
 
         # previews combo box
         filtered_previews_model = self._previews_combobox.get_model()
@@ -917,8 +919,11 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             for ii, row in enumerate(self._sorting_combobox.get_model()):
                 if row[0] == desc:
                     tar = ii
+                    ob = row[constants.EXTENSIBLE_MODEL_COLUMN_OBJECT]
+                    if hasattr(ob, "restore_state") and callable(ob.restore_state) and "current_sorting_state" in state:
+                         ob.restore_state(state["current_sorting_state"])
                     break
-        self._sorting_combobox.set_active(tar)        
+        self._sorting_combobox.set_active(tar)
         
         # previews combo box
         tar = 0 

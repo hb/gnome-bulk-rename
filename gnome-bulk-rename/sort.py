@@ -41,6 +41,7 @@ class ByName(object):
         case_check = Gtk.CheckButton(label=_("Case insensitive"))
         case_check.set_active(False)
         case_check.connect("toggled", self._on_case_check_toggled)
+        self._case_check = case_check
         self._config_widget = case_check
         
         self._case_sensitive = True
@@ -56,6 +57,17 @@ class ByName(object):
     def get_config_widget(self):
         return self._config_widget
 
+    
+    def get_state(self):
+        state = {}
+        state["case_check"] = self._case_check.get_active()
+        return state
+
+    
+    def restore_state(self, state):
+        if "case_check" in state:
+            self._case_check.set_active(state["case_check"])
+
 
     def _on_case_check_toggled(self, checkbutton):
         self._case_sensitive = not checkbutton.get_active()
@@ -64,4 +76,5 @@ class ByName(object):
         old_id_and_order = self._treesortable.get_sort_column_id()
 #HHBTODO Gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID auf -2 gesetzt 
         self._treesortable.set_sort_column_id(-2, Gtk.SortType.DESCENDING)
-        self._treesortable.set_sort_column_id(*old_id_and_order)
+        if old_id_and_order[0] is not None:
+            self._treesortable.set_sort_column_id(*old_id_and_order)
