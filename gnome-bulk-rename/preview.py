@@ -307,7 +307,7 @@ class PreviewEnumerate(object):
         # starting value
         row += 1
         table.attach(Gtk.Label(label=_("Starting value:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
-        adjustment = Gtk.Adjustment(value=1, lower=1, upper=999999, step_increment=1, page_increment=10)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=999999, step_increment=1, page_increment=10, page_size=0)
         align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
         spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
         spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
@@ -319,7 +319,7 @@ class PreviewEnumerate(object):
         # increment
         row += 1
         table.attach(Gtk.Label(label=_("Increment:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
-        adjustment = Gtk.Adjustment(value=1, lower=1, upper=1000, step_increment=1, page_increment=10)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=1000, step_increment=1, page_increment=10, page_size=0)
         align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
         spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
         spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
@@ -331,7 +331,7 @@ class PreviewEnumerate(object):
         # zero padding
         row += 1
         table.attach(Gtk.Label(label=_("Zero padding:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
-        adjustment = Gtk.Adjustment(value=1, lower=1, upper=10, step_increment=1, page_increment=1)
+        adjustment = Gtk.Adjustment(value=1, lower=1, upper=10, step_increment=1, page_increment=1, page_size=0)
         align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
         spinner = Gtk.SpinButton(adjustment=adjustment, climb_rate=1, digits=0)
         spinner.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
