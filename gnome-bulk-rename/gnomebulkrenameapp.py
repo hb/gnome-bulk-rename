@@ -240,8 +240,7 @@ class GnomeBulkRenameAppBase(object):
                      dlg_type = Gtk.MessageType.ERROR
                      msg = _("The following problems prevent renaming:") 
                 dlg = Gtk.MessageDialog(parent=self._window, type=dlg_type, buttons=Gtk.ButtonsType.CLOSE, message_format=msg)
-                dlg.set_property('secondary-use-markup', True)
-                dlg.set_property('secondary-text', "\n".join(problems))
+                dlg.format_secondary_markup("\n".join(problems))
                 dlg.show_all()
                 dlg.run()
                 dlg.destroy()
@@ -525,8 +524,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
             dlg = Gtk.MessageDialog(self._window, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE)
             dlg.set_title(_("Switch failed"))
             dlg.set_markup("<b>%s</b>" % _("Switch to advanced mode failed"))
-            dlg.set_property('secondary-use-markup', True)
-            dlg.set_property('secondary-text', _("The command '%s' could not be found.") % cmd[0])
+            dlg.format_secondary_markup(_("The command '%s' could not be found.") % cmd[0])
             dlg.run()
             dlg.destroy()
         else:

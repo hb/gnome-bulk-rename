@@ -101,8 +101,7 @@ class Window(object):
             (model, iter) = treeview.get_selection().get_selected()
             previewclass = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_OBJECT)
             dlg = Gtk.MessageDialog(parent=self._window, flags=Gtk.DialogFlags.DESTROY_WITH_PARENT, type=Gtk.MessageType.INFO, buttons=Gtk.ButtonsType.CLOSE, message_format=model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION))
-            dlg.set_property('secondary-use-markup', True)
-            dlg.set_property('secondary-text', previewclass.description)
+            dlg.format_secondary_markup(previewclass.description)
             dlg.connect("response", lambda dlg, response_id : dlg.destroy())
             dlg.show_all()
 

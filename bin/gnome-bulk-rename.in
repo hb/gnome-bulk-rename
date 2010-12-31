@@ -34,6 +34,8 @@ from gi.repository import Gdk
 
 LIBDIR = '@LIBDIR@'
 
+import gi.repository
+
 def _get_root_dir():
     return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
 
