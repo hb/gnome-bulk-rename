@@ -854,6 +854,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         idx = self._previews_combobox.get_active()
         if idx >= 0:
             state["current_preview_short_description"] = filtered_previews_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]          
+        if self._current_preview and hasattr(self._current_preview, "get_state") and callable(self._current_preview.get_state):
+            state["current_preview_state"] = self._current_preview.get_state()
 
         # restrict to name part combo
         state["restrict_to_name_part_combo"] = self._restrict_to_name_part_combo.get_active() 
@@ -934,6 +936,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     tar = ii
                     break
         self._previews_combobox.set_active(tar)
+        if self._current_preview and hasattr(self._current_preview, "restore_state") and callable(self._current_preview.restore_state) and "current_preview_state" in state:
+            self._current_preview.restore_state(state["current_preview_state"])
 
         # restrict to name part combo
         if "restrict_to_name_part_combo" in state:

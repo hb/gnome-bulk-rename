@@ -426,9 +426,9 @@ class PreviewCommonModificationsSimple(object):
 
         # config widget
         previews_model = Gtk.ListStore(*PreviewCommonModificationsSimple.EXTENSIBLE_MODEL_SELECTION_COLUMNS)
-        previews_combobox = Gtk.ComboBox(previews_model)
+        previews_combobox = Gtk.ComboBox(model=previews_model)
         cell = Gtk.CellRendererText()
-        previews_combobox.pack_start(cell, True, True, 0)
+        previews_combobox.pack_start(cell, True)
         previews_combobox.add_attribute(cell, "text", 0)
         previews_combobox.connect("changed", self._on_previews_combobox_changed)
         self._config_widget = previews_combobox
@@ -541,6 +541,14 @@ class PreviewCommonModifications(object):
         except AttributeError:
             valid = True
         return valid
+
+    def get_state(self):
+        print 'get state'
+        state = {}
+        return state
+    
+    def restore_state(self, state):
+        print 'restore state', state
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
