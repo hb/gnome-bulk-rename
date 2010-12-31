@@ -610,6 +610,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     config_container.pack_start(inst.get_config_widget(), False, True, 0)
                     config_container.show_all()
                 files_model.set_sort_column_id(sort_id, order)
+                self.refresh()
 
 
         def sorting_order_check_toggled(checkbutton, model, combobox, config_container):
@@ -699,6 +700,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         sorting_combobox.connect("changed", sorting_combobox_changed, self._files_model, order_check, sort_config_container)
         sorting_combobox.set_active(0)
         self._sorting_combobox = sorting_combobox
+        self._sorting_order_check = order_check
 
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget, True, True, 0)
@@ -835,11 +837,15 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._logger.debug("Saving state")
         state = {}
         
-        # sorting
+        # sorting combo
         filtered_sorting_model = self._sorting_combobox.get_model()
         idx = self._sorting_combobox.get_active()
         if idx >= 0:
-            state["current_sorting_short_description"] = filtered_sorting_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]         
+            state["current_sorting_short_description"] = filtered_sorting_model[idx][constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]
+        
+        # sorting order
+        state["sorting_order_descending"] = self._sorting_order_check.get_active()
+                 
 
         # previews combo box
         filtered_previews_model = self._previews_combobox.get_model()
@@ -900,6 +906,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             for irow, row in enumerate(self._markups_model):
                 row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = (irow == row_num)
         
+        # sorting order
+        if "sorting_order_descending" in state:
+            self._sorting_order_check.set_active(state["sorting_order_descending"]) 
+
         # sorting combo box
         tar = 0 
         if "current_sorting_short_description" in state:
@@ -909,7 +919,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     tar = ii
                     break
         self._sorting_combobox.set_active(tar)        
-                
+        
         # previews combo box
         tar = 0 
         if "current_preview_short_description" in state:
@@ -919,7 +929,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     tar = ii
                     break
         self._previews_combobox.set_active(tar)
-        
+
         # restrict to name part combo
         if "restrict_to_name_part_combo" in state:
             self._restrict_to_name_part_combo.set_active(state["restrict_to_name_part_combo"])
