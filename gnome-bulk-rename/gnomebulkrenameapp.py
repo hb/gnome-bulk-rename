@@ -88,7 +88,7 @@ class GnomeBulkRenameAppBase(object):
         treeview.set_size_request(450, 100)
         row_targets = [('text/uri-list', Gtk.TargetFlags.OTHER_APP, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST),
                         ("GTK_TREE_MODEL_ROW", Gtk.TargetFlags.SAME_WIDGET, GnomeBulkRenameAppBase.TARGET_TYPE_MODEL_ROW)]
-#HHBTODO        treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, row_targets, len(row_targets), Gdk.DragAction.MOVE)
+#HHBTODO        treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, row_targets, Gdk.DragAction.MOVE)
 #HHBTODO        treeview.enable_model_drag_dest(row_targets, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         treeview.connect("drag-data-received", self._on_drag_data_received)
         selection = treeview.get_selection()
@@ -210,7 +210,6 @@ class GnomeBulkRenameAppBase(object):
     def _on_rename_button_clicked(self, button):
         self._logger.debug("Starting rename operation")
         self._checker.clear_all_warnings_and_errors()
-        # TODO throttle on
         self._files_info_bar.hide()
         rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
 
@@ -247,7 +246,9 @@ class GnomeBulkRenameAppBase(object):
 
 
     def _add_to_files_model(self, uris):
-        """Adds a sequence of uris to the files model"""
+        """Adds a sequence of uris to the files model.
+        
+        The uris might in fact be anything that g_file_new_for_commandline_arg understands."""
         def __get_uri_dirname(gfile):
             uri = gfile.get_uri()
             # remove trailing slash
@@ -262,7 +263,7 @@ class GnomeBulkRenameAppBase(object):
             return dirname + "/"
 
         # get GFiles for uris
-        gfiles = [Gio.file_new_for_uri(uri) for uri in uris]
+        gfiles = [Gio.file_new_for_commandline_arg(uri) for uri in uris]
         # make sure they don't refer to identical uris (back and forth for normalization inside GFile)
         uris = set()
         for gfile in gfiles:
@@ -401,7 +402,6 @@ class GnomeBulkRenameAppBase(object):
         self._undo.push(undo_action)
         self.refresh(did_just_rename=True)
         self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
-        # TODO throttle off
         
                     
     def _on_undo_rename_completed(self, results, undo_action):
