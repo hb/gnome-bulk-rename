@@ -92,7 +92,7 @@ def main(argv=None):
     logger = logging.getLogger("gnome.bulk-rename")
     logger.setLevel(logging.DEBUG)
     handler = logging.handlers.TimedRotatingFileHandler(logfile, 'D', 7, 4)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s %(name)s [%(levelname)s]: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)

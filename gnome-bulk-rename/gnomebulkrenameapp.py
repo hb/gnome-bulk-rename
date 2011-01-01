@@ -275,7 +275,11 @@ class GnomeBulkRenameAppBase(object):
             # checking for already existing files
             if self._is_file_in_model(gfile):
                 continue
-            fileinfo = gfile.query_info(Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME, Gio.FileQueryInfoFlags.NONE, None)
+            try:
+                fileinfo = gfile.query_info(Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME, Gio.FileQueryInfoFlags.NONE, None)
+            except RuntimeError:
+                self._logger.error("Path '%s' could not be accessed, ignoring." %  gfile.get_path())
+                continue
             if fileinfo:
                 filename = fileinfo.get_attribute_as_string(Gio.FILE_ATTRIBUTE_STANDARD_EDIT_NAME)
                 try:
@@ -438,12 +442,13 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
     """Simplified GNOME bulk rename tool"""
 
     def __init__(self, uris=None):
+        # logger
+        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
+        self._logger.debug("init")
+
         GnomeBulkRenameAppBase.__init__(self, uris)
 
         GLib.set_application_name(config.appname + "-simple")
-
-        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
-        self._logger.debug("init")
 
         # window
         self._window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
@@ -579,6 +584,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     
     def __init__(self, uris=None):
         """constructor"""
+        # logger
+        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
+        self._logger.debug("init")
+
         GnomeBulkRenameAppBase.__init__(self, uris)
 
         def sorting_combobox_changed(combobox, files_model, order_check, config_container):
@@ -622,9 +631,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # application name
         GLib.set_application_name(config.appname)
-
-        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
-        self._logger.debug("init")
         
         # actions
         self._uimanager = Gtk.UIManager()
