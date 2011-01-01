@@ -499,6 +499,7 @@ class PreviewCommonModifications(object):
         previews_combobox.add_attribute(cell, "text", 0)
         previews_combobox.connect("changed", self._on_previews_combobox_changed)
         self._config_widget.pack_start(previews_combobox, False, True, 0)
+        self._previews_combobox = previews_combobox
 
         for previewer in previewers:
             previews_model.append((previewer.short_description, previewer))
@@ -543,12 +544,13 @@ class PreviewCommonModifications(object):
         return valid
 
     def get_state(self):
-        print 'get state'
         state = {}
+        state["previews_combobox_active"] = self._previews_combobox.get_active()
         return state
     
     def restore_state(self, state):
-        print 'restore state', state
+        if "previews_combobox_active" in state:
+            self._previews_combobox.set_active(state["previews_combobox_active"])
 
     def _on_previews_combobox_changed(self, combobox):
         row = combobox.get_model()[combobox.get_active()]
