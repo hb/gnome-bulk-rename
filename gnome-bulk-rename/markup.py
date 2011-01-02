@@ -20,6 +20,10 @@ Markup-like objects need to implement the markup member function."""
 
 import difflib
 
+import pygtk
+pygtk.require("2.0")
+from gi.repository import GLib
+
 from gettext import gettext as _
 
 import constants
@@ -34,8 +38,8 @@ class MarkupNoop(object):
     @staticmethod
     def markup(model):
         for row in model:
-            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
-            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = row[constants.FILES_MODEL_COLUMN_PREVIEW]
+            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_ORIGINAL], -1)
+            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_PREVIEW], -1)
 
 
 class MarkupColor(object):
@@ -57,8 +61,8 @@ class MarkupColor(object):
     
     def markup(self, model):
         for row in model:
-            oldstring = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
-            newstring = row[constants.FILES_MODEL_COLUMN_PREVIEW]
+            oldstring = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_ORIGINAL], -1)
+            newstring = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_PREVIEW], -1)
             oldlist = []
             newlist = []
             self._matcher.set_seqs(oldstring, newstring)

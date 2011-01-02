@@ -130,7 +130,6 @@ class GnomeBulkRenameAppBase(object):
 
     def refresh(self, did_just_rename=False, model_changed=False, name_part_restriction_changed=False):
         """Re-calculate previews"""
-        
         if did_just_rename:
             try:
                 self._current_preview.post_rename(self._files_model)
@@ -199,6 +198,7 @@ class GnomeBulkRenameAppBase(object):
             self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
         else:
             self._set_info_bar_according_to_problem_level(0)
+
 
     def _on_tree_selection_changed(self, selection):
         # removing does not exist in simple mode
@@ -395,7 +395,7 @@ class GnomeBulkRenameAppBase(object):
             else:
                 tooltips = [] 
             tooltips.insert(0, row[constants.FILES_MODEL_COLUMN_GFILE].get_uri())
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "\n".join(tooltips)
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = GLib.markup_escape_text("\n".join(tooltips), -1)
 
 
     def _on_rename_completed(self, results):
@@ -966,19 +966,13 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     def _on_action_add_folders(self, action, user_data=None):
         
         def add_folder_children(folder, uris, include_hidden):
-            root = Gio.file_new_for_uri("file:///")
-            for fileinfo in root.enumerate_children(Gio.FILE_ATTRIBUTE_STANDARD_NAME, 0, None):                
-#HHBTODO
-                print fileinfo.get_name()
-            
-            
-#HHBTODO: bug 634636
+#HHBTODO: bug 623278
             for fileinfo in folder.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
                 child = folder.get_child(fileinfo.get_name())
                 if not include_hidden and fileinfo.get_is_hidden():
                     continue
                 uris.append(child.get_uri())
-                if fileinfo.get_file_type() == Gio.FILE_TYPE_DIRECTORY:
+                if fileinfo.get_file_type() == Gio.FileType.DIRECTORY:
                     add_folder_children(child, uris, include_hidden)
         
         dlg = Gtk.FileChooserDialog(_("Add ..."), self._window, Gtk.FileChooserAction.SELECT_FOLDER, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
