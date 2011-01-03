@@ -99,7 +99,7 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
 
     def preview(self, model):
         for row in model:
-            row[1] = self._pattern.sub("_", unicode(row[0]))
+            row[1] = str(self._pattern.sub("_", row[0].decode("utf8")))
     
 
 class PreviewReplaceLongestSubstring(object):
