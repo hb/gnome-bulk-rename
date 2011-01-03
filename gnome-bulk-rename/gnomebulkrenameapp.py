@@ -45,6 +45,7 @@ import gtkutils
 import collect
 import config
 import preferences
+import register
 
 
 class GnomeBulkRenameAppBase(object):
@@ -126,6 +127,7 @@ class GnomeBulkRenameAppBase(object):
         if uris:
             self._add_to_files_model(uris)
 
+        register.startup_check_file_managers(self._logger)
 
 
     def refresh(self, did_just_rename=False, model_changed=False, name_part_restriction_changed=False):
@@ -198,8 +200,8 @@ class GnomeBulkRenameAppBase(object):
             self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
         else:
             self._set_info_bar_according_to_problem_level(0)
-
-
+        
+        
     def _on_tree_selection_changed(self, selection):
         # removing does not exist in simple mode
         try:

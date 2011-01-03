@@ -11,6 +11,7 @@ gnome_bulk_rename_PYTHON = \
 	markup.py \
 	preferences.py \
 	preview.py \
+	register.py \
 	rename.py \
 	sort.py \
 	undo.py
