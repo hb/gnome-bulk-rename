@@ -152,13 +152,13 @@ class GnomeBulkRenameAppBase(object):
             for row in self._files_model:
                 (root, ext) = os.path.splitext(row[0])
                 if active == 1:
-                    model.append([root, root, ext])
+                    model.append([root, root, row[2], ext])
                 else:
                     if len(ext) > 0:
                         dot = "."
                     else:
                         dot = ""
-                    model.append([ext[1:], ext[1:], root, dot])
+                    model.append([ext[1:], ext[1:], row[2], root, dot])
         
         if name_part_restriction_changed or model_changed:
             try:
@@ -181,10 +181,10 @@ class GnomeBulkRenameAppBase(object):
                 # if necessary, write back results
                 if active == 1:
                     for ii,row in enumerate(model):
-                        self._files_model[ii][1] = row[1]+row[2]
+                        self._files_model[ii][1] = row[1]+row[3]
                 elif active == 2:
                     for ii,row in enumerate(model):
-                        self._files_model[ii][1] = row[2]+row[3]+row[1]
+                        self._files_model[ii][1] = row[3]+row[4]+row[1]
         # reset if an error occured or invalid in the first place
         if not valid:
             for row in self._files_model:
@@ -289,7 +289,7 @@ class GnomeBulkRenameAppBase(object):
                 except ValueError:
                     self._logger.error("Cannot add URI because it contains no slash: '%s'" % gfile.get_uri())
                     continue
-                files_to_add.append([filename, "", "", "", gfile, "", "", dirname])
+                files_to_add.append([filename, "", gfile, "", "", "", "", dirname])
 
         # add to model
         for file in files_to_add:

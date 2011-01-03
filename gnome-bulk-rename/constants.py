@@ -21,12 +21,12 @@ import pygtk
 pygtk.require("2.0")
 from gi.repository import Gio
 
-FILES_MODEL_COLUMNS = (str, str, str, str, Gio.File, str, str, str)
+FILES_MODEL_COLUMNS = (str, str, Gio.File, str, str, str, str, str)
 FILES_MODEL_COLUMN_ORIGINAL = 0         # code relies on that
 FILES_MODEL_COLUMN_PREVIEW = 1          # code relies on that
-FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 2
-FILES_MODEL_COLUMN_MARKUP_PREVIEW = 3
-FILES_MODEL_COLUMN_GFILE = 4
+FILES_MODEL_COLUMN_GFILE = 2            # code relies on that
+FILES_MODEL_COLUMN_MARKUP_ORIGINAL = 3
+FILES_MODEL_COLUMN_MARKUP_PREVIEW = 4
 FILES_MODEL_COLUMN_ICON_STOCK = 5
 FILES_MODEL_COLUMN_TOOLTIP = 6
 FILES_MODEL_COLUMN_URI_DIRNAME = 7
