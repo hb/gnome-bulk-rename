@@ -47,7 +47,7 @@ from gi.repository import Gtk
 from gettext import gettext as _
 
 import gtkutils
-
+import EXIF
 
 def long_substr(model):
     """Brutal force, this could be smarter.
@@ -636,3 +636,101 @@ class PreviewToggleSpaceUnderscore(PreviewTranslate):
             self.set_source_and_target("_", " ")
         PreviewTranslate.preview(self, model)
         PreviewToggleSpaceUnderscore.ct += 1
+
+
+class PreviewImageMeta(object):
+    """Handle image EXIF metadata"""
+    
+    short_description = _("Image metadata")
+    
+    def __init__(self, refresh_func, model):
+
+        vbox = Gtk.VBox.new(False, 4)
+ 
+        self._refresh_func = refresh_func
+        
+        combobox = Gtk.ComboBoxText.new()
+        combobox.append_text(_("Time"))
+        #combobox.connect("changed", self._trigger_refresh)
+        combobox.set_active(0)
+        vbox.pack_start(combobox, False, False, 0)
+ 
+        combobox = Gtk.ComboBoxText.new()
+        combobox.append_text(_("Prepend to name"))
+        combobox.append_text(_("Append to name"))
+        combobox.append_text(_("Replace name"))
+        combobox.set_active(0)
+        combobox.connect("changed", lambda f1 : self._refresh_func())
+        vbox.pack_start(combobox, False, False, 0)
+        self._position_combobox = combobox
+ 
+        hbox = Gtk.HBox.new(False, 8)
+        vbox.pack_start(hbox, False, False, 0)
+        hbox.pack_start(Gtk.Label(label="Format:"), False, False, 0)
+        entry = Gtk.Entry()
+        entry.set_tooltip_text("Format string for Python's datetime.strftime() command.")
+        entry.set_text("%Y-%m-%d_")
+        buffer = entry.get_buffer()
+        buffer.connect("deleted-text", lambda f1, f2, f3 : self._refresh_func())
+        buffer.connect("inserted-text", self._on_datetime_format_entry_modified_text)
+        hbox.pack_start(entry, True, True, 0)
+        self._datetime_format_entry = entry
+ 
+        self._config_widget = vbox
+    
+    
+    def preview(self, model):
+        import datetime
+
+        def get_exif_data(gfile, tag, prefix):
+            local_path = gfile.get_path()
+            if not local_path:
+                raise RuntimeError
+            stream = open(local_path)
+            data = EXIF.process_file(stream, stop_tag=tag, details=False)
+            stream.close()
+            return data[" ".join([prefix, tag])].printable
+
+        def get_datetime(gfile):
+            val = get_exif_data(gfile, "DateTime", "Image")
+            return datetime.datetime(*[int(ii) for ii in (val[0:4], val[5:7],
+                                                          val[8:10], val[11:13],
+                                                          val[14:16], val[17:19])])
+        
+        # before parsing any files, check if the format string is valid
+        dt = datetime.datetime.now()
+        try:
+            dt.strftime(self._datetime_format_entry.get_text())
+        except ValueError:
+            for row in model:
+                row[1] = row[0]
+            return
+
+        pos = self._position_combobox.get_active()
+        
+        for row in model:
+            try:
+                dt = get_datetime(row[2])
+            except (KeyError, IndexError, TypeError, RuntimeError):
+                row[1] = row[0]
+                continue
+
+            try:
+                datetimestring = dt.strftime(self._datetime_format_entry.get_text())
+            except ValueError:
+                row[1] = row[0]
+            else:
+                if pos == 0:
+                    row[1] = datetimestring + row[0]
+                elif pos == 1:
+                    row[1] = row[0] + datetimestring
+                else:
+                    row[1] = datetimestring
+    
+    
+    def get_config_widget(self):
+        return self._config_widget
+
+
+    def _on_datetime_format_entry_modified_text(self, buffer, pos, chars, nchars):
+        self._refresh_func()
