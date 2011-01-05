@@ -21,6 +21,7 @@
 import sys
 from optparse import OptionParser
 import logging
+import logging.handlers
 import os
 import os.path
 
@@ -68,7 +69,6 @@ def main(argv=None):
     except:
         print "Couldn't set locale, reverting to C locale"
     
-    from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
     import config
 
     # set binary
@@ -98,6 +98,7 @@ def main(argv=None):
     logger.addHandler(handler)
 
     # start the application
+    from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
     if opt.simple:
         app = GnomeBulkRenameAppSimple(args)
     else:
@@ -109,4 +110,4 @@ if __name__ == "__main__":
     #sys.argv.extend(["file:///home/hb/aaaa he he ho", "file:///home/hb/Aaaa_usb_stick_claus", "file:///home/hb/aaaa he he ho"])
     #sys.argv.extend(["file:///home/hb/cycle/foo1", "file:///home/hb/cycle/foo2", "file:///home/hb/cycle/FZZ"])
     #sys.argv.append("--simple")
-    sys.exit(main(sys.argv))
+    sys.exit(main())

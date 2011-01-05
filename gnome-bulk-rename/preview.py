@@ -38,6 +38,8 @@ defining a "valid" member variable and assigning it a False value.
 import string
 import difflib
 import re
+import logging
+import os.path
 
 
 import pygtk
@@ -672,7 +674,7 @@ class PreviewImageMeta(object):
         entry.set_text("%Y-%m-%d_")
         buffer = entry.get_buffer()
         buffer.connect("deleted-text", lambda f1, f2, f3 : self._refresh_func())
-        buffer.connect("inserted-text", self._on_datetime_format_entry_modified_text)
+        buffer.connect("inserted-text", lambda f1, f2, f3, f4 : self._refresh_func())
         hbox.pack_start(entry, True, True, 0)
         self._datetime_format_entry = entry
  
@@ -732,5 +734,133 @@ class PreviewImageMeta(object):
         return self._config_widget
 
 
-    def _on_datetime_format_entry_modified_text(self, buffer, pos, chars, nchars):
-        self._refresh_func()
+
+try:
+    from mutagen.easyid3 import EasyID3
+    from mutagen.id3 import ID3NoHeaderError
+    from mutagen.oggvorbis import OggVorbis,OggVorbisHeaderError
+except ImportError:
+    __logger = logging.getLogger("gnome.bulk-rename")
+    __logger.info("Mutagen module not found, disabling renaming based on audio tags.")
+else:
+    class PreviewAudioData(object):
+        """Handle audio metadata"""
+    
+        short_description = _("Audio metadata")
+    
+        def __init__(self, refresh_func, model):
+            self._refresh_func = refresh_func
+            
+            self.__logger = logging.getLogger("gnome.bulk-rename")
+            self._translation_table = string.maketrans("/", "_")
+            
+            vbox = Gtk.VBox.new(False, 4)
+            
+            self._variable_map = {"%a" : "artist",
+                                  "%b" : "album",
+                                  "%t" : "title",
+                                  "%n" : "tracknumber"}
+            
+            combobox = Gtk.ComboBoxText.new()
+            combobox.append_text(_("Prepend to name"))
+            combobox.append_text(_("Append to name"))
+            combobox.append_text(_("Replace name"))
+            combobox.set_active(2)
+            combobox.connect("changed", lambda f1 : self._refresh_func())
+            vbox.pack_start(combobox, False, False, 0)
+            self._position_combobox = combobox
+            
+            hbox = Gtk.HBox.new(False, 8)
+            vbox.pack_start(hbox, False, False, 0)
+            hbox.pack_start(Gtk.Label(label="Format:"), False, False, 0)
+            entry = Gtk.Entry()
+            entry.set_text("%a-%b-%n.%t")
+            entry.set_tooltip_markup("""Variables:
+<b>%a</b>  Artist
+<b>%b</b>  Album
+<b>%t</b>  Title
+<b>%n</b>  Track number""")
+            buffer = entry.get_buffer()
+            buffer.connect("deleted-text", lambda f1, f2, f3 : self._refresh_func())
+            buffer.connect("inserted-text", lambda f1, f2, f3, f4 : self._refresh_func())
+            hbox.pack_start(entry, True, True, 0)
+            self._tags_format_entry = entry
+            
+            self._config_widget = vbox
+    
+    
+        def preview(self, model):
+            
+            def get_fist_list_item_of_key(el, key):
+                try:
+                    return self._sanitize(el[key][0])
+                except (KeyError, IndexError):
+                    return ""
+            
+            def sanitize_track_number(tracknumber):
+                try:
+                    nr = int(tracknumber)
+                except ValueError:
+                    idx = tracknumber.find("_")
+                    if idx != -1:
+                        nr = int(tracknumber[0:idx])
+                    else:
+                        self.__logger.warning("Could not parse track number")
+                        return ""
+                return "%02d" % nr
+            
+            pos = self._position_combobox.get_active()
+
+            for row in model:
+                filepath = row[2].get_path()
+                ext = os.path.splitext(filepath)[1].lower().strip('.')
+                tags = { "album" : "", "artist" : "", "tracknumber" : ""}
+                try:
+                    if ext == "mp3":
+                        try:
+                            id3 = EasyID3(filepath)
+                        except ID3NoHeaderError:
+                            self.__logger.warning("Could not parse audio file '%s'" % filepath)
+                        else:
+                            tags["album"] = get_fist_list_item_of_key(id3, "album")
+                            tags["artist"] = get_fist_list_item_of_key(id3, "artist")
+                            tags["tracknumber"] = sanitize_track_number(get_fist_list_item_of_key(id3, "tracknumber"))
+                            tags["title"] = get_fist_list_item_of_key(id3, "title")
+                    elif ext == "ogg":
+                        ogg = OggVorbis(filepath)
+                        try:
+                            tags["album"] = get_fist_list_item_of_key(ogg, "album")
+                            tags["artist"] = get_fist_list_item_of_key(ogg, "artist")
+                            tags["tracknumber"] = sanitize_track_number(get_fist_list_item_of_key(ogg, "tracknumber"))
+                            tags["title"] = get_fist_list_item_of_key(ogg, "title")
+                        except (KeyError, IndexError):
+                            pass
+                    else:
+                        raise RuntimeError
+                except (OggVorbisHeaderError):
+                    self.__logger.warning("Could not parse audio file '%s'." % filepath)
+                    row[1] = row[0]
+                except RuntimeError:
+                    row[1] = row[0]
+                else:
+                    format_string = self._tags_format_entry.get_text()
+                    # temporarily replace %% with /, to prevent %%a from expanding
+                    format_string = format_string.replace("%%", "/")
+                    for var,rep in self._variable_map.iteritems():
+                        format_string = format_string.replace(var, tags[rep])
+                    format_string = format_string.replace("/", "%")
+
+                    if pos == 0:
+                        row[1] = format_string + row[0]
+                    elif pos == 1:
+                        row[1] = row[0] + format_string
+                    else:
+                        row[1] = format_string
+
+
+        def get_config_widget(self):
+            return self._config_widget
+
+            
+        def _sanitize(self, input):
+            return str(input).translate(self._translation_table)

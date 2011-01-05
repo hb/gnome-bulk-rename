@@ -464,7 +464,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         self._window.add(vbox)
 
         # description
-        top_label = Gtk.Label(label=_("You can now modify the common name part of the files,\nor press the 'Advanced' button for more options."))
+        top_label = Gtk.Label(label=_("You can now modify the common name part of the files,\nor press the 'More options' button."))
         hbox = Gtk.HBox.new(False, 0)
         hbox.pack_start(Gtk.Image.new_from_stock(Gtk.STOCK_DIALOG_INFO, Gtk.IconSize.DIALOG), False, True, 0)
         hbox.pack_start(top_label, False, True, 0)
@@ -482,7 +482,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # if that doesn't work, offer some common simple modifications
         if not self._current_preview.valid:
             self._logger.debug("URIs don't have a common substring, offer simple modifications instead.")
-            top_label.set_text(_("You can choose among some common rename operations,\nor press the 'Advanced' button for more options."))
+            top_label.set_text(_("You can choose among some common rename operations,\nor press the 'More options' button."))
             self._current_preview = PreviewCommonModificationsSimple(self.refresh, self._files_model)
         self.refresh()
         
@@ -497,7 +497,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         buttonbox.set_spacing(12)
         vbox.pack_start(buttonbox, False, True, 0)
 
-        advanced_button = Gtk.Button(label=_("Advanced"))
+        advanced_button = Gtk.Button(label=_("More options"))
         advanced_button.connect("clicked", self._on_advanced_button_clicked)
         buttonbox.add(advanced_button)
 
