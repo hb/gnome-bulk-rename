@@ -464,9 +464,10 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         self._window.add(vbox)
 
         # description
+        top_label = Gtk.Label(label=_("You can now modify the common name part of the files,\nor press the 'Advanced' button for more options."))
         hbox = Gtk.HBox.new(False, 0)
         hbox.pack_start(Gtk.Image.new_from_stock(Gtk.STOCK_DIALOG_INFO, Gtk.IconSize.DIALOG), False, True, 0)
-        hbox.pack_start(Gtk.Label(label=_("You can choose among some common rename operations,\nor press the 'Advanced' button for more options.")), False, True, 0)
+        hbox.pack_start(top_label, False, True, 0)
         vbox.pack_start(hbox, False, True, 0)
 
         # add file list
@@ -481,6 +482,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         # if that doesn't work, offer some common simple modifications
         if not self._current_preview.valid:
             self._logger.debug("URIs don't have a common substring, offer simple modifications instead.")
+            top_label.set_text(_("You can choose among some common rename operations,\nor press the 'Advanced' button for more options."))
             self._current_preview = PreviewCommonModificationsSimple(self.refresh, self._files_model)
         self.refresh()
         
