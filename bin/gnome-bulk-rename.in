@@ -28,8 +28,6 @@ import os.path
 import locale
 import gettext
 
-import pygtk
-pygtk.require("2.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
@@ -44,7 +42,6 @@ def _in_devel():
     return os.path.exists(os.path.join(_get_root_dir(), '.git'))
 
 def main(argv=None):
-    
     folder = os.path.dirname(os.path.abspath(__file__))
     if _in_devel():
         root = os.path.split(folder)[0]
@@ -68,7 +65,7 @@ def main(argv=None):
         gettext.textdomain('gnome-bulk-rename')
     except:
         print "Couldn't set locale, reverting to C locale"
-    
+
     import config
 
     # set binary
@@ -99,6 +96,7 @@ def main(argv=None):
 
     # start the application
     from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
+
     if opt.simple:
         app = GnomeBulkRenameAppSimple(args)
     else:

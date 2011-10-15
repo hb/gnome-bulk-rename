@@ -21,8 +21,6 @@ import logging
 import os.path
 
 
-import pygtk
-pygtk.require('2.0')
 from gi.repository import Gio
 from gi.repository import Gtk
 

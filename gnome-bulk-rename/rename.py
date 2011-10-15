@@ -18,8 +18,6 @@
 import os
 import logging
 
-import pygtk
-pygtk.require('2.0')
 from gi.repository import Gio
 from gi.repository import Gtk
 from gi.repository import GLib
@@ -180,7 +178,7 @@ class Rename(object):
             try:
                 row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
                 row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-                row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg, -1))
+                row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg))
             except TypeError:
                 pass
             _logger.warning("Could not rename file '%s' to '%s': '%s'" % (old_display_name, new_display_name, error_msg))
@@ -236,7 +234,7 @@ class Rename(object):
         def _rename_back_on_final_errors(successful_renames, errors):
             for id, error_msg in errors:
                 self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg, -1))
+                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg))
             
             self._done_cb(len(successful_renames), len(errors), results)
 

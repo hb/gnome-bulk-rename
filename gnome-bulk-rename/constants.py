@@ -17,8 +17,11 @@
 
 """Various constants"""
 
-import pygtk
-pygtk.require("2.0")
+##########################################################
+# TODO: These constants should be set by upstream
+GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID = -2
+##########################################################
+
 from gi.repository import Gio
 
 FILES_MODEL_COLUMNS = (str, str, Gio.File, str, str, str, str, str)

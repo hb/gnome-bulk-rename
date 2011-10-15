@@ -25,8 +25,6 @@ import logging
 import logging.handlers
 import subprocess
 
-import pygtk
-pygtk.require("2.0")
 from gi.repository import GLib
 from gi.repository import Gio
 from gi.repository import Gdk
@@ -55,7 +53,7 @@ class GnomeBulkRenameAppBase(object):
     TARGET_TYPE_MODEL_ROW = 95
 
     def __init__(self, uris=None):
-
+        
         def files_model_row_deleted_cb(model, path, self):
             # setting sensitive again happens in the refresh logic
             if len(model) == 0:
@@ -89,8 +87,8 @@ class GnomeBulkRenameAppBase(object):
         treeview.set_size_request(450, 100)
         row_targets = [('text/uri-list', Gtk.TargetFlags.OTHER_APP, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST),
                         ("GTK_TREE_MODEL_ROW", Gtk.TargetFlags.SAME_WIDGET, GnomeBulkRenameAppBase.TARGET_TYPE_MODEL_ROW)]
-#HHBTODO        treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, row_targets, Gdk.DragAction.MOVE)
-#HHBTODO        treeview.enable_model_drag_dest(row_targets, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
+        treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, row_targets, Gdk.DragAction.MOVE)
+        treeview.enable_model_drag_dest(row_targets, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         treeview.connect("drag-data-received", self._on_drag_data_received)
         selection = treeview.get_selection()
         selection.set_mode(Gtk.SelectionMode.MULTIPLE)
@@ -271,6 +269,7 @@ class GnomeBulkRenameAppBase(object):
         for gfile in gfiles:
             uris.add(gfile.get_uri())
         gfiles = [Gio.file_new_for_uri(uri) for uri in uris]
+
         
         files_to_add = []
         for gfile in gfiles:
@@ -397,7 +396,7 @@ class GnomeBulkRenameAppBase(object):
             else:
                 tooltips = [] 
             tooltips.insert(0, row[constants.FILES_MODEL_COLUMN_GFILE].get_uri())
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = GLib.markup_escape_text("\n".join(tooltips), -1)
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = GLib.markup_escape_text("\n".join(tooltips))
 
 
     def _on_rename_completed(self, results):
@@ -615,8 +614,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
             if sort_id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
-#HHBTODO Gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID auf -2 gesetzt
-                files_model.set_sort_column_id(-2, order)
+                files_model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
             else:
                 order_check.set_sensitive(True)
                 if hasattr(inst, "get_config_widget"):
@@ -970,7 +968,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     def _on_action_add_folders(self, action, user_data=None):
         
         def add_folder_children(folder, uris, include_hidden):
-#HHBTODO: bug 623278
             for fileinfo in folder.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
                 child = folder.get_child(fileinfo.get_name())
                 if not include_hidden and fileinfo.get_is_hidden():

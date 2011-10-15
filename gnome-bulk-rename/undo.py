@@ -15,13 +15,11 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import pygtk
-pygtk.require('2.0')
-import gobject
+from gi.repository import GObject
 from gi.repository import Gtk
 
 
-class Undo(gobject.GObject):
+class Undo(GObject.GObject):
     """Undo stack for undo-like objects.
 
     Undo-like objects need to implement the undo and redo member functions.
@@ -33,14 +31,14 @@ class Undo(gobject.GObject):
     REDO_ACTION_NAME = "undoredoactionname"
 
     __gsignals__ = {
-        "can-undo" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                      (gobject.TYPE_BOOLEAN,)),
-        "can-redo" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                      (gobject.TYPE_BOOLEAN,)),
+        "can-undo" : (GObject.SignalFlags.RUN_LAST, None,
+                      (GObject.TYPE_BOOLEAN,)),
+        "can-redo" : (GObject.SignalFlags.RUN_LAST, None,
+                      (GObject.TYPE_BOOLEAN,)),
         }
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
 
         # stacks
         self._undo_stack = []

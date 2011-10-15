@@ -18,8 +18,6 @@
 
 import sys #only debug
 
-import pygtk
-pygtk.require('2.0')
 from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import GLib
@@ -46,7 +44,7 @@ class Checker(object):
     def clear_all_warnings_and_errors(self):
         for row in self._model:
             row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = ""
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_GFILE].get_uri(), -1)
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_GFILE].get_uri())
 
 
     def perform_checks(self):
@@ -158,7 +156,7 @@ class Checker(object):
 
 
     def _add_tooltip_msg(self, row_num, msg):
-        msg = GLib.markup_escape_text(msg, -1)
+        msg = GLib.markup_escape_text(msg)
         if self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
             self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
         else:

@@ -17,8 +17,6 @@
 
 """Sorting of the files model"""
 
-import pygtk
-pygtk.require('2.0')
 from gi.repository import Gtk
 
 from gettext import gettext as _
