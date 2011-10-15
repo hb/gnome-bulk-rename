@@ -303,7 +303,22 @@ class PreviewEnumerate(object):
         table.set_row_spacings(4)
 
         row = -1
-        
+
+        # format
+        row += 1
+        table.attach(Gtk.Label(label=_("Format:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        combobox = Gtk.ComboBoxText.new()
+        combobox.append_text(_("Number - Text - Old Name"))
+        combobox.append_text(_("Old Name - Text - Number"))
+        combobox.append_text(_("Text - Number"))
+        combobox.append_text(_("Number - Text"))
+        combobox.connect("changed", self._trigger_refresh)
+        combobox.set_active(0)
+        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
+        align.add(combobox)
+        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
+        self._format_combobox = combobox
+
         # starting value
         row += 1
         table.attach(Gtk.Label(label=_("Starting value:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
@@ -348,21 +363,6 @@ class PreviewEnumerate(object):
         entry.set_text(".")
         table.attach(entry, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
         self._text_entry = entry
-
-        # format
-        row += 1
-        table.attach(Gtk.Label(label=_("Format:")), 0, 1, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
-        combobox = Gtk.ComboBoxText.new()
-        combobox.append_text(_("Number - Text - Old Name"))
-        combobox.append_text(_("Old Name - Text - Number"))
-        combobox.append_text(_("Text - Number"))
-        combobox.append_text(_("Number - Text"))
-        combobox.connect("changed", self._trigger_refresh)
-        combobox.set_active(0)
-        align = Gtk.Alignment(xalign=0.0, yalign=0.0, xscale=0.0, yscale=0.0)
-        align.add(combobox)
-        table.attach(align, 1, 2, row, row+1, Gtk.AttachOptions.FILL, 0, 0, 0)
-        self._format_combobox = combobox
         
         self._config_widget = table
 
