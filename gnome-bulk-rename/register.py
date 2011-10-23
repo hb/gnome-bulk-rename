@@ -37,13 +37,20 @@ def startup_check_file_managers(logger):
                 inst.register()
                 logger.info("Registered on %s" % cl)
             elif config.appname not in setting:
-                logger.info("Didn't register on %s - another command already registered: %s" % (cl, setting))
+                logger.info("Didn't register on %s - another command already registered: '%s'" % (cl, setting))
+            else:
+                logger.info("Already registered as '%s'" % setting)
         except RuntimeError:
             logger.info("Startup registration for %s skipped." % cl)
 
 
 def _get_setting_string():
     return config.appname + " -s"
+
+
+#TODO: this is just here to work around bystring bug in pygobject
+def _get_str_from_variant_bytestring(var):
+    return "".join([chr(el) for el in var.unpack()])[:-1]
 
 
 class _Nautilus(object):
@@ -59,10 +66,15 @@ class _Nautilus(object):
     
     
     def get_bulk_renamer_setting(self):
-        # hhb: TODO: check if key exists
+        if constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL not in self._settings.list_keys():
+            return None
+
+        val = GLib.Variant.new_bytestring(_get_setting_string())
         val = self._settings.get_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL)
-        return val.get_bytestring()
+        return _get_str_from_variant_bytestring(val)
 
     def register(self):
-        val = GLib.Variant.new_bytestring(_get_setting_string())
-        self._settings.set_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL, val)
+        if constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL in self._settings.list_keys():
+            # TODO: pygobject bytestring variants seem unstable
+            val = GLib.Variant("ay", _get_setting_string() + chr(0))
+            self._settings.set_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL, val)
