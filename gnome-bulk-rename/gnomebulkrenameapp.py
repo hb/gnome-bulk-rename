@@ -1,5 +1,5 @@
 # GNOME bulk rename utility
-# Copyright (C) 2010 Holger Berndt <hb@gnome.org>
+# Copyright (C) 2010-2011 Holger Berndt <hb@gnome.org>
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,15 +15,14 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import cPickle as pickle
-import sys # only debug
-
+import sys
 import os
 import os.path
 import urllib
 import logging
 import logging.handlers
 import subprocess
+import cPickle as pickle
 
 from gi.repository import GLib
 from gi.repository import Gio
@@ -49,8 +48,7 @@ import register
 class GnomeBulkRenameAppBase(object):
     """Base class for bulk renamer frontends"""
 
-    TARGET_TYPE_URI_LIST = 94
-    TARGET_TYPE_MODEL_ROW = 95
+    DND_INFO_TEXT = 0
 
     def __init__(self, uris=None):
         
@@ -84,12 +82,12 @@ class GnomeBulkRenameAppBase(object):
         self._files_model = Gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
         self._files_model.connect("row-deleted", files_model_row_deleted_cb, self)
         treeview = Gtk.TreeView(model=self._files_model)
-        treeview.set_size_request(450, 100)
-        row_targets = [('text/uri-list', Gtk.TargetFlags.OTHER_APP, GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST),
-                        ("GTK_TREE_MODEL_ROW", Gtk.TargetFlags.SAME_WIDGET, GnomeBulkRenameAppBase.TARGET_TYPE_MODEL_ROW)]
-        treeview.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, row_targets, Gdk.DragAction.MOVE)
-        treeview.enable_model_drag_dest(row_targets, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
+        #dnd
+        treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
+        treeview.drag_dest_add_text_targets()
         treeview.connect("drag-data-received", self._on_drag_data_received)
+        # setup
+        treeview.set_size_request(450, 100)
         selection = treeview.get_selection()
         selection.set_mode(Gtk.SelectionMode.MULTIPLE)
         selection.connect("changed", self._on_tree_selection_changed)
@@ -214,10 +212,10 @@ class GnomeBulkRenameAppBase(object):
         rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
 
 
-    def _on_drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
+    def _on_drag_data_received(self, widget, context, x, y, data, info, timestamp):
         """Callback for received drag data"""
-        if target_type == GnomeBulkRenameAppBase.TARGET_TYPE_URI_LIST:
-            uris = selection.data.strip("\r\n\x00")
+        if info == GnomeBulkRenameAppBase.DND_INFO_TEXT:
+            uris = data.get_text().strip("\r\n\x00")
             uri_splitted = uris.split()
             self._add_to_files_model(uris.split())
 
@@ -305,12 +303,7 @@ class GnomeBulkRenameAppBase(object):
 
 
     def _update_rename_button_sensitivity(self):
-        sensitive = True
-
-        if self._checker and ((self._checker.all_names_stay_the_same) or (self._checker.highest_problem_level > 1)):
-            sensitive = False
-
-        self._rename_button.set_sensitive(sensitive)
+        self._rename_button.set_sensitive(not (self._checker and ((self._checker.all_names_stay_the_same) or (self._checker.highest_problem_level > 1))))
 
 
     def _set_info_bar_according_to_problem_level(self, highest_level):
@@ -615,7 +608,9 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             if sort_id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
                 files_model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
+                #self._files_treeview.set_reorderable(True)
             else:
+                #self._files_treeview.set_reorderable(False)
                 order_check.set_sensitive(True)
                 if hasattr(inst, "get_config_widget"):
                     config_container.pack_start(inst.get_config_widget(), False, True, 0)
