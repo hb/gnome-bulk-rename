@@ -36,8 +36,8 @@ class MarkupNoop(object):
     @staticmethod
     def markup(model):
         for row in model:
-            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_ORIGINAL], -1)
-            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_PREVIEW], -1)
+            row[constants.FILES_MODEL_COLUMN_MARKUP_ORIGINAL] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_ORIGINAL])
+            row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_PREVIEW])
 
 
 class MarkupColor(object):
