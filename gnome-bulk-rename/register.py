@@ -48,11 +48,6 @@ def _get_setting_string():
     return config.appname + " -s"
 
 
-#TODO: this is just here to work around bystring bug in pygobject
-def _get_str_from_variant_bytestring(var):
-    return "".join([chr(el) for el in var.unpack()])[:-1]
-
-
 class _Nautilus(object):
     
     def __init__(self):
@@ -69,12 +64,10 @@ class _Nautilus(object):
         if constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL not in self._settings.list_keys():
             return None
 
-        val = GLib.Variant.new_bytestring(_get_setting_string())
-        val = self._settings.get_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL)
-        return _get_str_from_variant_bytestring(val)
+        return self._settings.get_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL).get_bytestring()
+
 
     def register(self):
         if constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL in self._settings.list_keys():
-            # TODO: pygobject bytestring variants seem unstable
-            val = GLib.Variant("ay", _get_setting_string() + chr(0))
+            val = GLib.Variant.new_bytestring(_get_setting_string())
             self._settings.set_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL, val)
