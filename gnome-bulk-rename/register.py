@@ -63,7 +63,6 @@ class _Nautilus(object):
     def get_bulk_renamer_setting(self):
         if constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL not in self._settings.list_keys():
             return None
-
         return self._settings.get_value(constants.SETTINGS_NAUTILUS_BULK_RENAME_TOOL).get_bytestring()
 
 

@@ -61,6 +61,21 @@ class GnomeBulkRenameAppBase(object):
             if self._files_treeview.get_reorderable():
                 self.refresh(model_changed=True)
 
+            # some actions do not exist in simple mode
+            try:
+                self._clear_action.set_sensitive(len(model) > 0)
+            except AttributeError:
+                pass
+
+
+        def files_model_row_inserted_cb(model, path, iter, self):
+            # some actions do not exist in simple mode
+            try:
+                self._clear_action.set_sensitive(True)
+            except AttributeError:
+                pass
+
+
         # undo stack
         self._undo = undo.Undo()
 
@@ -85,6 +100,7 @@ class GnomeBulkRenameAppBase(object):
         self._file_list_widget.pack_start(scrolledwin, True, True, 4)
         self._files_model = Gtk.ListStore(*constants.FILES_MODEL_COLUMNS)
         self._files_model.connect("row-deleted", files_model_row_deleted_cb, self)
+        self._files_model.connect("row-inserted", files_model_row_inserted_cb, self)
         treeview = Gtk.TreeView(model=self._files_model)
         #dnd
         treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
@@ -668,6 +684,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._uimanager.add_ui_from_string(self.__ui)
         self._remove_action = self._action_group.get_action("remove")
         self._remove_action.set_sensitive(False)
+        self._clear_action = self._action_group.get_action("clear")
+        self._clear_action.set_sensitive(False)
 
         # window
         self._window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
