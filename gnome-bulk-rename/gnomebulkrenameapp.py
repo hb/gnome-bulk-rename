@@ -48,7 +48,7 @@ import register
 class GnomeBulkRenameAppBase(object):
     """Base class for bulk renamer frontends"""
 
-    DND_INFO_TEXT = 0
+    DND_INFO_TEXT = 93
 
     def __init__(self, uris=None):
         
@@ -56,6 +56,10 @@ class GnomeBulkRenameAppBase(object):
             # setting sensitive again happens in the refresh logic
             if len(model) == 0:
                 self._rename_button.set_sensitive(False)
+            
+            # if deletion was caused by row-reordering by dnd, we need to refresh
+            if self._files_treeview.get_reorderable():
+                self.refresh(model_changed=True)
 
         # undo stack
         self._undo = undo.Undo()
@@ -84,12 +88,14 @@ class GnomeBulkRenameAppBase(object):
         treeview = Gtk.TreeView(model=self._files_model)
         #dnd
         treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
-        treeview.drag_dest_add_text_targets()
+        targets = Gtk.TargetList.new([])
+        targets.add_text_targets(GnomeBulkRenameAppBase.DND_INFO_TEXT)
+        treeview.drag_dest_set_target_list(targets)
         treeview.connect("drag-data-received", self._on_drag_data_received)
         # setup
         treeview.set_size_request(450, 100)
         selection = treeview.get_selection()
-        selection.set_mode(Gtk.SelectionMode.MULTIPLE)
+        selection.set_mode(Gtk.SelectionMode.NONE)
         selection.connect("changed", self._on_tree_selection_changed)
         textrenderer = Gtk.CellRendererText()
         pixbufrenderer = Gtk.CellRendererPixbuf()
@@ -608,15 +614,22 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             if sort_id == constants.SORT_ID_MANUAL:
                 order_check.set_sensitive(False)
                 files_model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, order)
-                #self._files_treeview.set_reorderable(True)
+                
+                self._files_treeview.set_reorderable(True)
             else:
-                #self._files_treeview.set_reorderable(False)
+                self._files_treeview.set_reorderable(False)
+                self._files_treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
+                
                 order_check.set_sensitive(True)
                 if hasattr(inst, "get_config_widget"):
                     config_container.pack_start(inst.get_config_widget(), False, True, 0)
                     config_container.show_all()
                 files_model.set_sort_column_id(sort_id, order)
                 self.refresh()
+
+            targets = self._files_treeview.drag_dest_get_target_list()
+            targets.add_text_targets(GnomeBulkRenameAppBase.DND_INFO_TEXT)
+            self._files_treeview.drag_dest_set_target_list(targets)
 
 
         def sorting_order_check_toggled(checkbutton, model, combobox, config_container):
@@ -628,6 +641,10 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # application name
         GLib.set_application_name(config.appname)
+
+        # files treeview selection
+        selection = self._files_treeview.get_selection()
+        selection.set_mode(Gtk.SelectionMode.MULTIPLE)
         
         # actions
         self._uimanager = Gtk.UIManager()
