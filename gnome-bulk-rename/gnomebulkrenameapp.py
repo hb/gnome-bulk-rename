@@ -644,6 +644,8 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                 self.refresh()
 
             targets = self._files_treeview.drag_dest_get_target_list()
+            if targets is None:
+                targets = Gtk.TargetList.new([])
             targets.add_text_targets(GnomeBulkRenameAppBase.DND_INFO_TEXT)
             self._files_treeview.drag_dest_set_target_list(targets)
 
