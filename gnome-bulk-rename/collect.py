@@ -128,6 +128,5 @@ def get_extensible_model(modulname, required_attributes):
     
     model.set_default_sort_func(lambda model, iter1, iter2, user_data : cmp(model.get_value(iter1, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY),
                                                                  model.get_value(iter2, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY)), None)
-#HHBTODO Gtk.TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID auf -1 gesetzt
-    model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
+    model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, Gtk.SortType.ASCENDING)
     return model

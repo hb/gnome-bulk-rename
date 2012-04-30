@@ -72,7 +72,6 @@ class ByName(object):
 
         # trigger re-sort
         old_id_and_order = self._treesortable.get_sort_column_id()
-#HHBTODO Gtk.TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID auf -2 gesetzt 
-        self._treesortable.set_sort_column_id(-2, Gtk.SortType.DESCENDING)
+        self._treesortable.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, Gtk.SortType.DESCENDING)
         if old_id_and_order[0] is not None:
             self._treesortable.set_sort_column_id(*old_id_and_order)

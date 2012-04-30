@@ -143,9 +143,7 @@ class PreviewReplaceLongestSubstring(object):
         return self._valid
 
     def _on_replacement_string_entry_changed(self, editable):
-        # TODO: sanity check (search for /)
         self._refresh_func()
-
 
     def model_changed(self, model, path=None, iter=None):
         self._longest_common_substring = long_substr(model)

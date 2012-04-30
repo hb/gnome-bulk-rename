@@ -62,8 +62,7 @@ def _rename(rename_map, done_callback):
         cancellable = Gio.Cancellable()
         cancellables[gfile.get_uri()] = cancellable
 
-#HHBTODO: G_PRIORITY_DEFAULT = 0 
-        gfile.set_display_name_async(new_display_name, 0, cancellable, _set_display_name_async_cb, (user_data, done_callback))
+        gfile.set_display_name_async(new_display_name, GLib.PRIORITY_DEFAULT, cancellable, _set_display_name_async_cb, (user_data, done_callback))
 
     return cancellables
 

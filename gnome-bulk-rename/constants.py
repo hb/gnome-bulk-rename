@@ -19,6 +19,7 @@
 
 ##########################################################
 # TODO: These constants should be set by upstream
+GBR_GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID = -1
 GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID = -2
 ##########################################################
 
