@@ -40,7 +40,7 @@ import difflib
 import re
 import logging
 import os.path
-
+import datetime
 
 from gi.repository import Gtk
 
@@ -641,27 +641,17 @@ class PreviewImageMeta(object):
     
     short_description = _("Image metadata")
     
-    class SubPreview(object):
-        def __init__(self, config, preview_routine):
-            self.config = config
-            self.preview_routine = preview_routine
-    
     def __init__(self, refresh_func, model):
 
         self._config_widget = Gtk.VBox.new(False, 4)
         
         self._refresh_func = refresh_func
         
-        # tag selection
-        combobox = Gtk.ComboBoxText.new()
-        combobox.append_text(_("Time"))
-        combobox.append_text(_("Image width"))
-        combobox.append_text(_("Image length"))
-        combobox.set_active(0)
-        combobox.connect("changed", self._on_tag_combobox_changed)
-        self._config_widget.pack_start(combobox, False, False, 0)
-        self._tag_combobox = combobox
- 
+        self._variable_map = {
+                              "%{width}" : "EXIF ExifImageWidth",
+                              "%{length}" : "EXIF ExifImageLength"
+                              }
+        
         # prepend / append / replace
         combobox = Gtk.ComboBoxText.new()
         combobox.append_text(_("Prepend to name"))
@@ -672,96 +662,78 @@ class PreviewImageMeta(object):
         self._config_widget.pack_start(combobox, False, False, 0)
         self._position_combobox = combobox
  
-        # subconfig container
-        self._subconfig_widget = Gtk.VBox.new(False, 0)
-        self._config_widget.pack_start(self._subconfig_widget, True, True, 0)
-
-        self._subpreview_map = {}
- 
         # datetime format
         hbox = Gtk.HBox.new(False, 8)
+        self._config_widget.pack_start(hbox, False, False, 0)
         hbox.pack_start(Gtk.Label(label="Format:"), False, False, 0)
         entry = Gtk.Entry()
-        entry.set_tooltip_text("Format string for Python's datetime.strftime() command.")
+        entry.set_tooltip_markup("""Variables:        
+<b>%{width}</b> Image width
+<b>%{length}</b> Image length
+<b>%Y</b> Timestamp: Year with century
+<b>%m</b> Timestamp: Month
+<b>%d</b> Timestamp: Day
+All other variables understood by Python's datetime.strftime() command are also allowed for the timestamp.""")
         entry.set_text("%Y-%m-%d_")
         buffer = entry.get_buffer()
         buffer.connect("deleted-text", lambda f1, f2, f3 : self._refresh_func())
         buffer.connect("inserted-text", lambda f1, f2, f3, f4 : self._refresh_func())
         hbox.pack_start(entry, True, True, 0)
-        self._datetime_format_entry = entry
-
-        self._subpreview_map[_("Time")] = PreviewImageMeta.SubPreview(hbox, self._preview_time)
-        
-        self._subpreview_map[_("Image width")] = PreviewImageMeta.SubPreview(None, self._preview_image_width)
-        self._subpreview_map[_("Image length")] = PreviewImageMeta.SubPreview(None, self._preview_image_length)
-        
-        self._subconfig_widget.pack_start(self._subpreview_map[_("Time")].config, False, False, 0)
+        self._tags_format_entry = entry
         
     
     def preview(self, model):
-        self._subpreview_map[self._tag_combobox.get_active_text()].preview_routine(model)
+        format_string = self._tags_format_entry.get_text()
+        for row in model:
+            try:
+                tags = [self._variable_map[key] for key in self._variable_map]
+                tags.append("Image DateTime")
+                exif_data = self._get_exif_data(row[2], tags)
+            except (TypeError, RuntimeError):
+                pass
+            # temporarily replace %% with /, to prevent %%Y from expanding 
+            fmt = format_string.replace("%%", "/")
+            
+            # our own replacements
+            for var,rep in self._variable_map.iteritems():
+                fmt = fmt.replace(var, exif_data[rep])
+            
+            # Python's strfptime
+            if "Image DateTime" in exif_data:
+                try:
+                    fmt = exif_data["Image DateTime"].strftime(fmt)
+                except ValueError:
+                    row[1] = row[0]
+                    
+            fmt = fmt.replace("/", "%")
+            row[1] = self._update_name_with_pos(row[0], fmt)
 
 
-    def _get_exif_data(self, gfile, tag, prefix):
+    def _get_exif_data(self, gfile, tags):
+        """tags is a list of (prefix, tag)"""
+
+        def get_datetime(val):
+            return datetime.datetime(*[int(ii) for ii in (val[0:4], val[5:7],
+                                                          val[8:10], val[11:13],
+                                                          val[14:16], val[17:19])])
+
         local_path = gfile.get_path()
         if not local_path:
             raise RuntimeError
         stream = open(local_path)
-        data = EXIF.process_file(stream, stop_tag=tag, details=False)
+        data = EXIF.process_file(stream, details=False)
         stream.close()
-        return data[" ".join([prefix, tag])].printable
-
-
-    def _preview_image_width(self, model):
-        for row in model:
+        ret = {}
+        for tag in tags:
             try:
-                width = self._get_exif_data(row[2], "ExifImageWidth", "EXIF")
-            except (KeyError, IndexError, TypeError, RuntimeError):
-                row[1] = row[0]
+                if tag == "Image DateTime":
+                    ret[tag] = get_datetime(data[tag].printable)
+                else:
+                    ret[tag] =  data[tag].printable
+            except (KeyError, IndexError):
                 continue
-            row[1] = self._update_name_with_pos(row[0], width)
+        return ret
 
-    def _preview_image_length(self, model):
-        for row in model:
-            try:
-                width = self._get_exif_data(row[2], "ExifImageLength", "EXIF")
-            except (KeyError, IndexError, TypeError, RuntimeError):
-                row[1] = row[0]
-                continue
-            row[1] = self._update_name_with_pos(row[0], width)
-    
-    def _preview_time(self, model):
-        import datetime
-
-        def get_datetime(gfile):
-            val = self._get_exif_data(gfile, "DateTime", "Image")
-            return datetime.datetime(*[int(ii) for ii in (val[0:4], val[5:7],
-                                                          val[8:10], val[11:13],
-                                                          val[14:16], val[17:19])])
-        
-        # before parsing any files, check if the format string is valid
-        dt = datetime.datetime.now()
-        try:
-            dt.strftime(self._datetime_format_entry.get_text())
-        except ValueError:
-            for row in model:
-                row[1] = row[0]
-            return
-
-        for row in model:
-            try:
-                dt = get_datetime(row[2])
-            except (KeyError, IndexError, TypeError, RuntimeError):
-                row[1] = row[0]
-                continue
-
-            try:
-                datetimestring = dt.strftime(self._datetime_format_entry.get_text())
-            except ValueError:
-                row[1] = row[0]
-            else:
-                row[1] = self._update_name_with_pos(row[0], datetimestring)
-    
 
     def _update_name_with_pos(self, oldname, text):
         pos = self._position_combobox.get_active()
