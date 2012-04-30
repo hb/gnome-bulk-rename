@@ -641,29 +641,45 @@ class PreviewImageMeta(object):
     
     short_description = _("Image metadata")
     
+    class SubPreview(object):
+        def __init__(self, config, preview_routine):
+            self.config = config
+            self.preview_routine = preview_routine
+    
     def __init__(self, refresh_func, model):
 
-        vbox = Gtk.VBox.new(False, 4)
- 
+        self._config_widget = Gtk.VBox.new(False, 4)
+        
         self._refresh_func = refresh_func
         
+        # tag selection
         combobox = Gtk.ComboBoxText.new()
         combobox.append_text(_("Time"))
-        #combobox.connect("changed", self._trigger_refresh)
+        combobox.append_text(_("Image width"))
+        combobox.append_text(_("Image length"))
         combobox.set_active(0)
-        vbox.pack_start(combobox, False, False, 0)
+        combobox.connect("changed", self._on_tag_combobox_changed)
+        self._config_widget.pack_start(combobox, False, False, 0)
+        self._tag_combobox = combobox
  
+        # prepend / append / replace
         combobox = Gtk.ComboBoxText.new()
         combobox.append_text(_("Prepend to name"))
         combobox.append_text(_("Append to name"))
         combobox.append_text(_("Replace name"))
         combobox.set_active(0)
         combobox.connect("changed", lambda f1 : self._refresh_func())
-        vbox.pack_start(combobox, False, False, 0)
+        self._config_widget.pack_start(combobox, False, False, 0)
         self._position_combobox = combobox
  
+        # subconfig container
+        self._subconfig_widget = Gtk.VBox.new(False, 0)
+        self._config_widget.pack_start(self._subconfig_widget, True, True, 0)
+
+        self._subpreview_map = {}
+ 
+        # datetime format
         hbox = Gtk.HBox.new(False, 8)
-        vbox.pack_start(hbox, False, False, 0)
         hbox.pack_start(Gtk.Label(label="Format:"), False, False, 0)
         entry = Gtk.Entry()
         entry.set_tooltip_text("Format string for Python's datetime.strftime() command.")
@@ -673,24 +689,52 @@ class PreviewImageMeta(object):
         buffer.connect("inserted-text", lambda f1, f2, f3, f4 : self._refresh_func())
         hbox.pack_start(entry, True, True, 0)
         self._datetime_format_entry = entry
- 
-        self._config_widget = vbox
-    
+
+        self._subpreview_map[_("Time")] = PreviewImageMeta.SubPreview(hbox, self._preview_time)
+        
+        self._subpreview_map[_("Image width")] = PreviewImageMeta.SubPreview(None, self._preview_image_width)
+        self._subpreview_map[_("Image length")] = PreviewImageMeta.SubPreview(None, self._preview_image_length)
+        
+        self._subconfig_widget.pack_start(self._subpreview_map[_("Time")].config, False, False, 0)
+        
     
     def preview(self, model):
+        self._subpreview_map[self._tag_combobox.get_active_text()].preview_routine(model)
+
+
+    def _get_exif_data(self, gfile, tag, prefix):
+        local_path = gfile.get_path()
+        if not local_path:
+            raise RuntimeError
+        stream = open(local_path)
+        data = EXIF.process_file(stream, stop_tag=tag, details=False)
+        stream.close()
+        return data[" ".join([prefix, tag])].printable
+
+
+    def _preview_image_width(self, model):
+        for row in model:
+            try:
+                width = self._get_exif_data(row[2], "ExifImageWidth", "EXIF")
+            except (KeyError, IndexError, TypeError, RuntimeError):
+                row[1] = row[0]
+                continue
+            row[1] = self._update_name_with_pos(row[0], width)
+
+    def _preview_image_length(self, model):
+        for row in model:
+            try:
+                width = self._get_exif_data(row[2], "ExifImageLength", "EXIF")
+            except (KeyError, IndexError, TypeError, RuntimeError):
+                row[1] = row[0]
+                continue
+            row[1] = self._update_name_with_pos(row[0], width)
+    
+    def _preview_time(self, model):
         import datetime
 
-        def get_exif_data(gfile, tag, prefix):
-            local_path = gfile.get_path()
-            if not local_path:
-                raise RuntimeError
-            stream = open(local_path)
-            data = EXIF.process_file(stream, stop_tag=tag, details=False)
-            stream.close()
-            return data[" ".join([prefix, tag])].printable
-
         def get_datetime(gfile):
-            val = get_exif_data(gfile, "DateTime", "Image")
+            val = self._get_exif_data(gfile, "DateTime", "Image")
             return datetime.datetime(*[int(ii) for ii in (val[0:4], val[5:7],
                                                           val[8:10], val[11:13],
                                                           val[14:16], val[17:19])])
@@ -704,8 +748,6 @@ class PreviewImageMeta(object):
                 row[1] = row[0]
             return
 
-        pos = self._position_combobox.get_active()
-        
         for row in model:
             try:
                 dt = get_datetime(row[2])
@@ -718,14 +760,30 @@ class PreviewImageMeta(object):
             except ValueError:
                 row[1] = row[0]
             else:
-                if pos == 0:
-                    row[1] = datetimestring + row[0]
-                elif pos == 1:
-                    row[1] = row[0] + datetimestring
-                else:
-                    row[1] = datetimestring
+                row[1] = self._update_name_with_pos(row[0], datetimestring)
     
-    
+
+    def _update_name_with_pos(self, oldname, text):
+        pos = self._position_combobox.get_active()
+        if pos == 0:
+            return text + oldname
+        elif pos == 1:
+            return oldname + text
+        else:
+            return text
+        
+        
+    def _on_tag_combobox_changed(self, combobox):
+        gtkutils.clear_gtk_container(self._subconfig_widget)
+        try:
+            config_widget = self._subpreview_map[combobox.get_active_text()].config
+            if config_widget is not None:
+                self._subconfig_widget.pack_start(config_widget, True, True, 0)
+        except KeyError:
+            pass
+        
+        self._refresh_func()
+        
     def get_config_widget(self):
         return self._config_widget
 
