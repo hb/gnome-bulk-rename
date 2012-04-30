@@ -6,6 +6,7 @@ gnome_bulk_rename_PYTHON = \
 	collect.py \
 	config.py \
 	constants.py \
+	EXIF.py \
 	gnomebulkrenameapp.py \
 	gtkutils.py \
 	markup.py \
