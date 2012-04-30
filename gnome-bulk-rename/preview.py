@@ -646,12 +646,7 @@ class PreviewImageMeta(object):
         self._config_widget = Gtk.VBox.new(False, 4)
         
         self._refresh_func = refresh_func
-        
-        self._variable_map = {
-                              "%{width}" : "EXIF ExifImageWidth",
-                              "%{length}" : "EXIF ExifImageLength"
-                              }
-        
+               
         # prepend / append / replace
         combobox = Gtk.ComboBoxText.new()
         combobox.append_text(_("Prepend to name"))
@@ -668,12 +663,13 @@ class PreviewImageMeta(object):
         hbox.pack_start(Gtk.Label(label="Format:"), False, False, 0)
         entry = Gtk.Entry()
         entry.set_tooltip_markup("""Variables:        
-<b>%{width}</b> Image width
-<b>%{length}</b> Image length
 <b>%Y</b> Timestamp: Year with century
 <b>%m</b> Timestamp: Month
 <b>%d</b> Timestamp: Day
-All other variables understood by Python's datetime.strftime() command are also allowed for the timestamp.""")
+All other variables understood by Python's datetime.strftime() command are also allowed for the timestamp.
+
+Also, all Exif fields are accessible via %{IFD TAG}. For example, to get the image width, use
+<b>%{EXIF ExifImageWidth}</b>""")
         entry.set_text("%Y-%m-%d_")
         buffer = entry.get_buffer()
         buffer.connect("deleted-text", lambda f1, f2, f3 : self._refresh_func())
@@ -686,18 +682,18 @@ All other variables understood by Python's datetime.strftime() command are also 
         format_string = self._tags_format_entry.get_text()
         for row in model:
             try:
-                tags = [self._variable_map[key] for key in self._variable_map]
-                tags.append("Image DateTime")
-                exif_data = self._get_exif_data(row[2], tags)
+                exif_data = self._get_exif_data(row[2])
             except (TypeError, RuntimeError):
                 pass
             # temporarily replace %% with /, to prevent %%Y from expanding 
             fmt = format_string.replace("%%", "/")
             
-            # our own replacements
-            for var,rep in self._variable_map.iteritems():
-                fmt = fmt.replace(var, exif_data[rep])
-            
+            # exif replacements
+            for key in exif_data:
+                var = "%%{%s}" % key
+                if var in fmt:
+                    fmt = fmt.replace(var, exif_data[key])
+
             # Python's strfptime
             if "Image DateTime" in exif_data:
                 try:
@@ -709,9 +705,7 @@ All other variables understood by Python's datetime.strftime() command are also 
             row[1] = self._update_name_with_pos(row[0], fmt)
 
 
-    def _get_exif_data(self, gfile, tags):
-        """tags is a list of (prefix, tag)"""
-
+    def _get_exif_data(self, gfile):
         def get_datetime(val):
             return datetime.datetime(*[int(ii) for ii in (val[0:4], val[5:7],
                                                           val[8:10], val[11:13],
@@ -721,17 +715,19 @@ All other variables understood by Python's datetime.strftime() command are also 
         if not local_path:
             raise RuntimeError
         stream = open(local_path)
-        data = EXIF.process_file(stream, details=False)
+        data = EXIF.process_file(stream, details=True)
         stream.close()
         ret = {}
-        for tag in tags:
+        for tag in data:
             try:
                 if tag == "Image DateTime":
                     ret[tag] = get_datetime(data[tag].printable)
                 else:
                     ret[tag] =  data[tag].printable
-            except (KeyError, IndexError):
-                continue
+            except IndexError:
+                ret[tag] =  data[tag].printable
+            except AttributeError:
+                ret[tag] =  data[tag]
         return ret
 
 
