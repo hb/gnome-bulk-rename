@@ -470,6 +470,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         self._window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self._window.set_title(_("Bulk Rename"))
         self._window.set_border_width(4)
+        self._window.set_size_request(450, 400)
         self._window.connect("destroy", lambda o : Gtk.main_quit())
         self._window.connect("delete-event", self._on_delete_event)
 
