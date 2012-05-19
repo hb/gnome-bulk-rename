@@ -681,6 +681,7 @@ Also, all Exif fields are accessible via %{IFD TAG}. For example, to get the ima
     def preview(self, model):
         format_string = self._tags_format_entry.get_text()
         for row in model:
+            exif_data = {}
             try:
                 exif_data = self._get_exif_data(row[2])
             except (TypeError, RuntimeError):
@@ -714,7 +715,7 @@ Also, all Exif fields are accessible via %{IFD TAG}. For example, to get the ima
         local_path = gfile.get_path()
         if not local_path:
             raise RuntimeError
-        stream = open(local_path)
+        stream = open(local_path, "rb")
         data = EXIF.process_file(stream, details=True)
         stream.close()
         ret = {}
