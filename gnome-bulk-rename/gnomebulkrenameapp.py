@@ -686,7 +686,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._remove_action = self._action_group.get_action("remove")
         self._remove_action.set_sensitive(False)
         self._clear_action = self._action_group.get_action("clear")
-        self._clear_action.set_sensitive(False)
+        self._clear_action.set_sensitive(len(self._files_model) > 0)
 
         # window
         self._window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
