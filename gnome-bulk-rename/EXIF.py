@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Library to extract EXIF information from digital camera image files
@@ -1173,7 +1173,7 @@ MAKERNOTE_CANON_TAG_0x004 = {
 def s2n_motorola(str):
     x = 0
     for c in str:
-        x = (x << 8) | ord(c)
+        x = (x << 8) | c
     return x
 
 # extract multibyte integer in Intel format (big endian)
@@ -1181,7 +1181,7 @@ def s2n_intel(str):
     x = 0
     y = 0
     for c in str:
-        x = x | (ord(c) << y)
+        x = x | (c << y)
         y = y + 8
     return x
 
@@ -1351,11 +1351,11 @@ class EXIF_header:
                     if count != 0 and count < (2**31):
                         self.file.seek(self.offset + offset)
                         values = self.file.read(count)
-                        #print values
                         # Drop any garbage after a null.
-                        values = values.split('\x00', 1)[0]
+                        values = values.split(b'\x00', 1)[0]
                     else:
-                        values = ''
+                        values = b''
+                    values = values.decode()
                 else:
                     values = []
                     signed = (field_type in [6, 8, 9, 10])
@@ -1605,24 +1605,24 @@ def process_file(f, stop_tag='UNDEF', details=True, strict=False, debug=False):
 
     # determine whether it's a JPEG or TIFF
     data = f.read(12)
-    if data[0:4] in ['II*\x00', 'MM\x00*']:
+    if data[0:4] in [b'II*\x00', b'MM\x00*']:
         # it's a TIFF file
         f.seek(0)
-        endian = f.read(1)
+        endian = f.read(1).encode("utf-8")
         f.read(1)
         offset = 0
-    elif data[0:2] == '\xFF\xD8':
+    elif data[0:2] == b'\xFF\xD8':
         # it's a JPEG file
-        while data[2] == '\xFF' and data[6:10] in ('JFIF', 'JFXX', 'OLYM', 'Phot'):
-            length = ord(data[4])*256+ord(data[5])
+        while data[2] == ord(b'\xFF') and data[6:10] in (b'JFIF', b'JFXX', b'OLYM', b'Phot'):
+            length = data[4]*256+data[5]
             f.read(length-8)
             # fake an EXIF beginning of file
             data = '\xFF\x00'+f.read(10)
             fake_exif = 1
-        if data[2] == '\xFF' and data[6:10] == 'Exif':
+        if data[2] == ord(b'\xFF') and data[6:10] == b'Exif':
             # detected EXIF header
             offset = f.tell()
-            endian = f.read(1)
+            endian = f.read(1).decode()
         else:
             # no EXIF information
             return {}
