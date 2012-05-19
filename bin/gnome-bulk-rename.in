@@ -64,7 +64,7 @@ def main(argv=None):
         gettext.bindtextdomain('gnome-bulk-rename', localedir)
         gettext.textdomain('gnome-bulk-rename')
     except:
-        print "Couldn't set locale, reverting to C locale"
+        print("Couldn't set locale, reverting to C locale")
 
     import config
     import register

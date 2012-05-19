@@ -18,11 +18,11 @@
 import sys
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import logging
 import logging.handlers
 import subprocess
-import cPickle as pickle
+import pickle as pickle
 
 from gi.repository import GLib
 from gi.repository import Gio
@@ -192,7 +192,7 @@ class GnomeBulkRenameAppBase(object):
         if valid:
             try:
                 self._current_preview.preview(model)
-            except Exception, ee:
+            except Exception as ee:
                 valid = False
             else:
                 # if necessary, write back results
@@ -541,7 +541,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         
         try:
             subprocess.Popen(cmd)
-        except OSError, ee:
+        except OSError as ee:
             self._logger.error("Command invokation failed: '%s'" % "".join(cmd))
             # open an error dialog
             dlg = Gtk.MessageDialog(self._window, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE)

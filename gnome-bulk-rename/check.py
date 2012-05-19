@@ -102,7 +102,7 @@ class Checker(object):
     def _check_for_double_targets(self):
         """Sets pixbuf and tooltip text. Returns True if double targets exist"""
         double_uris = []
-        for key,value in self._dict_target_uri_to_indices.iteritems():
+        for key,value in self._dict_target_uri_to_indices.items():
             if len(value) > 1:
                 double_uris.append(key)
 

@@ -45,7 +45,7 @@ def _rename(rename_map, done_callback):
         (user_data, done_cb) = cb_data
         try:
             new_gfile = gfile.set_display_name_finish(result)
-        except RuntimeError, ee:
+        except RuntimeError as ee:
             errors.append((user_data, ee.message))
         else:
             successful_renames.append((user_data, new_gfile))
@@ -137,7 +137,7 @@ class Rename(object):
 
     def cancel(self):
         """Cancels all outstanding operations."""
-        for key,cancellable in self._cancellables.iteritems():
+        for key,cancellable in self._cancellables.items():
             cancellable.cancel()
 
 

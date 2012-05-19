@@ -868,7 +868,7 @@ else:
                     format_string = self._tags_format_entry.get_text()
                     # temporarily replace %% with /, to prevent %%a from expanding
                     format_string = format_string.replace("%%", "/")
-                    for var,rep in self._variable_map.iteritems():
+                    for var,rep in self._variable_map.items():
                         format_string = format_string.replace(var, tags[rep])
                     format_string = format_string.replace("/", "%")
 
