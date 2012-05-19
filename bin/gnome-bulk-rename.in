@@ -67,6 +67,7 @@ def main(argv=None):
         print "Couldn't set locale, reverting to C locale"
 
     import config
+    import register
 
     # set binary
     config.exec_script_filepath = os.path.realpath(__file__)
@@ -74,8 +75,10 @@ def main(argv=None):
     # argument parsing
     if argv is None:
         argv = sys.argv
+
     parser = OptionParser(usage="%prog", version="%prog " + config.version, description="Bulk rename tool for GNOME")
     parser.add_option("-s", "--simple", action="store_true")
+    parser.add_option("--register", action="store_true", help="Don't start the application, just register with file managers.")
     (opt, args) = parser.parse_args(args=argv[1:])
 
     # logging
@@ -97,11 +100,14 @@ def main(argv=None):
     # start the application
     from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
 
-    if opt.simple:
-        app = GnomeBulkRenameAppSimple(args)
+    if opt.register:
+        register.startup_check_file_managers(logger)
     else:
-        app = GnomeBulkRenameApp(args)
-    Gtk.main()
+        if opt.simple:
+            app = GnomeBulkRenameAppSimple(args)
+        else:
+            app = GnomeBulkRenameApp(args)
+        Gtk.main()
 
 if __name__ == "__main__":
     sys.exit(main())

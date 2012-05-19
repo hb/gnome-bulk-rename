@@ -75,7 +75,6 @@ class GnomeBulkRenameAppBase(object):
             except AttributeError:
                 pass
 
-
         # undo stack
         self._undo = undo.Undo()
 
