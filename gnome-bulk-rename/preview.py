@@ -70,7 +70,7 @@ class PreviewTranslate(object):
         self._translation_table = None
 
     def set_source_and_target(self, source, target):
-        self._translation_table = string.maketrans(source, target)
+        self._translation_table = str.maketrans(source, target)
     
     def preview(self, model):
         if self._translation_table:
@@ -99,7 +99,7 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
 
     def preview(self, model):
         for row in model:
-            row[1] = str(self._pattern.sub("_", row[0].decode("utf8")))
+            row[1] = self._pattern.sub("_", row[0])
     
 
 class PreviewReplaceLongestSubstring(object):
@@ -775,7 +775,7 @@ else:
             self._refresh_func = refresh_func
             
             self.__logger = logging.getLogger("gnome.bulk-rename")
-            self._translation_table = string.maketrans("/", "_")
+            self._translation_table = str.maketrans("/", "_")
             
             vbox = Gtk.VBox.new(False, 4)
             
