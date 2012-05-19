@@ -27,7 +27,7 @@ from gi.repository import Gtk
 import constants
 import config
 import sys
-
+import utils
 
 _logger = logging.getLogger("gnome.bulk-rename.collect") 
 
@@ -88,7 +88,7 @@ def _get_extensible_model_from_modulname(modulname, required_attributes, model=N
 
 
 def get_extensible_model(modulname, required_attributes):
-    """Returns a Gtk.istStore of found classes that implement a specific function.
+    """Returns a Gtk.ListStore of found classes that implement a specific function.
     
     These classes are searched in the builtin module 'modulname', and then
     in all .py or .pyc files in the directory config.user_data_dir/modulname.
@@ -126,7 +126,7 @@ def get_extensible_model(modulname, required_attributes):
             _get_extensible_model_from_modulname(found_module, required_attributes, model)
         del sys.path[0]
     
-    model.set_default_sort_func(lambda model, iter1, iter2, user_data : cmp(model.get_value(iter1, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY),
+    model.set_default_sort_func(lambda model, iter1, iter2, user_data : utils.cmp(model.get_value(iter1, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY),
                                                                  model.get_value(iter2, constants.EXTENSIBLE_MODEL_COLUMN_PRIORITY)), None)
     model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, Gtk.SortType.ASCENDING)
     return model

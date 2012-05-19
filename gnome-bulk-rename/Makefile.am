@@ -15,7 +15,8 @@ gnome_bulk_rename_PYTHON = \
 	register.py \
 	rename.py \
 	sort.py \
-	undo.py
+	undo.py \
+	utils.py
 
 BUILT_SOURCES=config.py
 

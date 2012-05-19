@@ -18,7 +18,6 @@
 import sys
 import os
 import os.path
-import urllib.request, urllib.parse, urllib.error
 import logging
 import logging.handlers
 import subprocess
@@ -909,7 +908,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             if row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE]:
                 state["current_markup"] = row[constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION]
         
-        pickle.dump(state, open(os.path.join(config.config_dir, "state"), "w"))
+        pickle.dump(state, open(os.path.join(config.config_dir, "state"), "wb"))
 
 
     def _restore_state(self):
@@ -932,7 +931,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
             return
         
         self._logger.debug("Restoring state")
-        state = pickle.load(open(statesavefilename, "r"))
+        state = pickle.load(open(statesavefilename, "rb"))
 
         # extensible models
         restore_extensible_model(self._sorting_model, "sorting")

@@ -22,6 +22,7 @@ from gi.repository import Gtk
 from gettext import gettext as _
 
 import constants
+import utils
 
 class Manually(object):
     description = _("No automatic sorting is applied to the files. It is possible to rearrange the files by drag and drop.")
@@ -47,9 +48,9 @@ class ByName(object):
 
     def sort(self, model, iter1, iter2, user_data):
         if self._case_sensitive:
-            return cmp(model.get_value(iter1, 0), model.get_value(iter2, 0))
+            return utils.cmp(model.get_value(iter1, 0), model.get_value(iter2, 0))
         else:
-            return cmp(model.get_value(iter1, 0).lower(), model.get_value(iter2, 0).lower())
+            return utils.cmp(model.get_value(iter1, 0).lower(), model.get_value(iter2, 0).lower())
 
 
     def get_config_widget(self):

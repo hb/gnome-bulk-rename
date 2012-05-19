@@ -36,7 +36,7 @@ def startup_check_file_managers(logger):
             if setting == "":
                 inst.register()
                 logger.info("Registered on %s" % cl)
-            elif config.appname not in setting:
+            elif config.appname.encode("utf-8") not in setting:
                 logger.info("Didn't register on %s - another command already registered: '%s'" % (cl, setting))
             else:
                 logger.info("Already registered as '%s'" % setting)
