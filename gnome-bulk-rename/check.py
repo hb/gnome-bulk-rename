@@ -107,17 +107,13 @@ class Checker(object):
 
         msg = "<b>%s:</b> %s" % (_("ERROR"), _("Double output filepath"))
         registered = set()
-        found_problem = False
         for uri in double_uris:
             for ii in self._dict_target_uri_to_indices[uri]:
                 if ii not in registered:
                     self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                     self.highest_problem_level = max(self.highest_problem_level, 2)
-                    found_problem = True
                     self._add_tooltip_msg(ii, msg)
                     registered.add(ii)
-
-        return found_problem
 
 
     def _check_for_circular_renaming(self):
@@ -155,7 +151,6 @@ class Checker(object):
 
 
     def _add_tooltip_msg(self, row_num, msg):
-        msg = GLib.markup_escape_text(msg)
         if self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
             self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
         else:
