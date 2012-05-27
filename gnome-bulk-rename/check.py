@@ -31,7 +31,6 @@ class Checker(object):
     """Perform various checks on a model"""
 
     def __init__(self, model):
-        """Perform checks already in constructor"""
         # results that can be queried
         self.all_names_stay_the_same = True
         self.highest_problem_level = 0
@@ -50,11 +49,11 @@ class Checker(object):
     def perform_checks(self):
         """Run tests. Clears the model first."""
         self.clear_all_warnings_and_errors()
-        self._check_if_all_names_stay_the_same()
 
+        self._check_if_all_names_stay_the_same()
+        
         # there can't be any problems in this case
         if not self.all_names_stay_the_same:
-
             # more common data
             self._list_of_source_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[0]) for row in self._model]
             self._list_of_target_uris = [(row[constants.FILES_MODEL_COLUMN_URI_DIRNAME] + row[1]) for row in self._model]
@@ -76,10 +75,10 @@ class Checker(object):
 
 
     def _check_if_all_names_stay_the_same(self):
+        self.all_names_stay_the_same = True
         for row in self._model:
             if row[0] != row[1]:
                 self.all_names_stay_the_same = False
-        self._all_names_stay_the_same = True
 
 
     def _check_for_empty_targets(self):
