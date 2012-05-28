@@ -52,7 +52,7 @@ class Window(object):
         vbox.pack_start(notebook, True, True, 0)
 
         notebook.append_page(self._setup_extensible_model_tab(self._previews_model), Gtk.Label(label=_("Previewers")))
-        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model), Gtk.Label(label=_("Sorting")))
+        notebook.append_page(self._setup_extensible_model_tab(self._sorting_model, frozen_entries=["0"]), Gtk.Label(label=_("Sorting")))
         notebook.append_page(self._setup_extensible_model_tab(self._markups_model, markup=True), Gtk.Label(label=_("Markup")))
 
         # button box
@@ -66,22 +66,26 @@ class Window(object):
         buttonbox.add(close_button)
         
 
-    def _setup_extensible_model_tab(self, model, markup=False):
+    def _setup_extensible_model_tab(self, model, frozen_entries=None, markup=False):
+        """If given, frozen_entries is a list of non-modifyable entry paths.""" 
 
-        def toggled_callback(cell, path, model=None):
+        def toggled_callback(cell, path, model=None, frozen_entries=None):
+            # ignore if entry is frozen
+            if frozen_entries and path in frozen_entries:
+                return
             iter = model.get_iter(path)
             is_active = not cell.get_active()
-            if markup and not is_active:
-                return
-            if not markup:
+            if markup:
+                if not is_active:
+                    return
+                for row in model:
+                    row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
+            else:
                 short_desc = model.get_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION)
                 if is_active:
                     model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, short_desc)
                 else:
                     model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_SHORT_DESCRIPTION_MARKUP, "".join(['<span color="gray">', short_desc, '</span>']))
-            if markup:
-                for row in model:
-                    row[constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE] = False
             model.set_value(iter, constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE, is_active)
             if markup:
                 self._markup_changed_cb(model.get_path(iter))
@@ -117,7 +121,7 @@ class Window(object):
         togglerenderer = Gtk.CellRendererToggle()
         togglerenderer.set_radio(markup)
         togglerenderer.set_property("activatable", True)
-        togglerenderer.connect('toggled', toggled_callback, model)
+        togglerenderer.connect('toggled', toggled_callback, model, frozen_entries)
         # column "active"
         column = Gtk.TreeViewColumn(None, togglerenderer, active=constants.EXTENSIBLE_MODEL_COLUMN_VISIBLE)
         treeview.append_column(column)
