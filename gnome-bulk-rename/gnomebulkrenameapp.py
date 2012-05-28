@@ -73,6 +73,7 @@ class GnomeBulkRenameAppBase(object):
                 self._clear_action.set_sensitive(True)
             except AttributeError:
                 pass
+                        
 
         # undo stack
         self._undo = undo.Undo()
@@ -217,7 +218,12 @@ class GnomeBulkRenameAppBase(object):
         else:
             self._set_info_bar_according_to_problem_level(0)
         
-        
+    
+    def _filtered_model_row_deleted_cb(self, model, path, combobox):
+        # if combobox doesn't have an active path anymore, set the first one
+        if combobox.get_active_iter() is None:
+            combobox.set_active(0)
+
     def _on_tree_selection_changed(self, selection):
         # removing does not exist in simple mode
         try:
@@ -738,6 +744,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         sorting_combobox.set_active(0)
         self._sorting_combobox = sorting_combobox
         self._sorting_order_check = order_check
+        filteredmodel.connect("row-deleted", self._filtered_model_row_deleted_cb, self._sorting_combobox)
 
         # add file list widget from base class
         vbox.pack_start(self._file_list_widget, True, True, 0)
@@ -797,6 +804,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._previews_combobox.add_attribute(cell, "text", 0)
         self._previews_combobox.connect("changed", self._on_previews_combobox_changed)
         alignment.add(self._previews_combobox)
+        filteredmodel.connect("row-deleted", self._filtered_model_row_deleted_cb, self._previews_combobox)
 
         # markup
         self._markups_model = collect.get_extensible_model("markup", ["markup"])
