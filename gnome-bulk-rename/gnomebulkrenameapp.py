@@ -525,8 +525,6 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         except AttributeError:
             pass
         
-        
-        
         self._window.show_all()
 
 

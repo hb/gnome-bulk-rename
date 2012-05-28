@@ -24,3 +24,5 @@ gnome-bulk-rename/config.py
 install-sh
 missing
 mkinstalldirs
+*.tar.gz
+*.tar.bz2
