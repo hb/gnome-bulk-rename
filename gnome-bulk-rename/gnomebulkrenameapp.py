@@ -49,7 +49,7 @@ class GnomeBulkRenameAppBase(object):
 
     DND_INFO_TEXT = 93
 
-    def __init__(self, uris=None):
+    def __init__(self, recursive=False, uris=None):
         
         def files_model_row_deleted_cb(model, path, self):
             # setting sensitive again happens in the refresh logic
@@ -142,6 +142,11 @@ class GnomeBulkRenameAppBase(object):
 
         # add files
         if uris:
+            if recursive:
+                orig_uris = list(uris)
+                for gfile in [Gio.file_new_for_commandline_arg(uri) for uri in orig_uris]:
+                    if gfile.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) == Gio.FileType.DIRECTORY:
+                        self._add_folder_children(gfile, uris)
             self._add_to_files_model(uris)
 
         register.startup_check_file_managers(self._logger)
@@ -268,6 +273,16 @@ class GnomeBulkRenameAppBase(object):
                 dlg.run()
                 dlg.destroy()
 
+
+    def _add_folder_children(self, folder, uris, include_hidden=False):
+        """Add files and folders below folder recursively to the list uris"""
+        for fileinfo in folder.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
+            child = folder.get_child(fileinfo.get_name())
+            if not include_hidden and fileinfo.get_is_hidden():
+                continue
+            uris.append(child.get_uri())
+            if fileinfo.get_file_type() == Gio.FileType.DIRECTORY:
+                self._add_folder_children(child, uris, include_hidden)
 
     def _add_to_files_model(self, uris):
         """Adds a sequence of uris to the files model.
@@ -461,12 +476,12 @@ class GnomeBulkRenameAppBase(object):
 class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
     """Simplified GNOME bulk rename tool"""
 
-    def __init__(self, uris=None):
+    def __init__(self, recursive, uris=None):
         # logger
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
         self._logger.debug("init")
 
-        GnomeBulkRenameAppBase.__init__(self, uris)
+        GnomeBulkRenameAppBase.__init__(self, recursive, uris)
 
         GLib.set_application_name(config.appname + "-simple")
 
@@ -603,13 +618,13 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         }
 
     
-    def __init__(self, uris=None):
+    def __init__(self, recursive, uris=None):
         """constructor"""
         # logger
         self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
         self._logger.debug("init")
 
-        GnomeBulkRenameAppBase.__init__(self, uris)
+        GnomeBulkRenameAppBase.__init__(self, recursive, uris)
 
         def sorting_combobox_changed(combobox, files_model, order_check, config_container):
 
@@ -1003,16 +1018,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
 
     def _on_action_add_folders(self, action, user_data=None):
-        
-        def add_folder_children(folder, uris, include_hidden):
-            for fileinfo in folder.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
-                child = folder.get_child(fileinfo.get_name())
-                if not include_hidden and fileinfo.get_is_hidden():
-                    continue
-                uris.append(child.get_uri())
-                if fileinfo.get_file_type() == Gio.FileType.DIRECTORY:
-                    add_folder_children(child, uris, include_hidden)
-        
         dlg = Gtk.FileChooserDialog(_("Add ..."), self._window, Gtk.FileChooserAction.SELECT_FOLDER, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         dlg.set_default_response(Gtk.ResponseType.OK)
         dlg.set_select_multiple(True)
@@ -1035,11 +1040,12 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
                     continue
                 uris.append(uri)
                 if recursive_check.get_active():
-                    add_folder_children(file, uris, include_hidden)
+                    self._add_folder_children(file, uris, include_hidden)
                     
         dlg.destroy()
         if uris:
-            self._add_to_files_model(uris)        
+            self._add_to_files_model(uris)
+
 
     def _on_action_remove(self, action, user_data=None):
         selection = self._files_treeview.get_selection()

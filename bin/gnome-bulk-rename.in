@@ -76,9 +76,10 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = OptionParser(usage="%prog", version="%prog " + config.version, description="Bulk rename tool for GNOME")
+    parser = OptionParser(usage="%prog [options] [uri1, uri2, ...]", version="%prog " + config.version, description=gettext.gettext("Bulk rename tool for GNOME"))
     parser.add_option("-s", "--simple", action="store_true")
-    parser.add_option("--register", action="store_true", help="Don't start the application, just register with file managers.")
+    parser.add_option("--register", action="store_true", help=gettext.gettext("Don't start the application, just register with file managers"))
+    parser.add_option("-r", "--recursive", action="store_true", help=gettext.gettext("Add files and folders of command line URIs recursively"), default=False)
     (opt, args) = parser.parse_args(args=argv[1:])
 
     # logging
@@ -98,15 +99,15 @@ def main(argv=None):
     logger.addHandler(handler)
 
     # start the application
-    from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
-
     if opt.register:
         register.startup_check_file_managers(logger)
     else:
+        from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
+        
         if opt.simple:
-            app = GnomeBulkRenameAppSimple(args)
+            app = GnomeBulkRenameAppSimple(opt.recursive, args)
         else:
-            app = GnomeBulkRenameApp(args)
+            app = GnomeBulkRenameApp(opt.recursive, args)
         Gtk.main()
 
 if __name__ == "__main__":
