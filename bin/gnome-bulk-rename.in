@@ -42,8 +42,8 @@ def _in_devel():
     return os.path.exists(os.path.join(_get_root_dir(), '.git'))
 
 def main(argv=None):
-    folder = os.path.dirname(os.path.abspath(__file__))
     if _in_devel():
+        folder = os.path.dirname(os.path.abspath(__file__))
         root = os.path.split(folder)[0]
         localedir = os.path.join(root, 'po')
     else:
