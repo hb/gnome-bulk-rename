@@ -492,6 +492,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         self._window.set_size_request(450, 400)
         self._window.connect("destroy", lambda o : Gtk.main_quit())
         self._window.connect("delete-event", self._on_delete_event)
+        self._window.connect("key-press-event", self._on_key_press_event)
 
         # main vbox
         vbox = Gtk.VBox.new(False, 0)
@@ -576,6 +577,14 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
     def _on_delete_event(self, widget, event):
         self.quit()
         return True
+
+
+    def _on_key_press_event(self, widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.quit()
+            return True
+        return False
+
 
 
 class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
@@ -714,6 +723,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._window.set_border_width(4)
         self._window.connect("destroy", lambda o : Gtk.main_quit())
         self._window.connect("delete-event", self._on_delete_event)
+        self._window.connect("key-press-event", self._on_key_press_event)
         self._window.add_accel_group(self._uimanager.get_accel_group())
         
         vbox = Gtk.VBox.new(False, 0)
@@ -1069,6 +1079,12 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     def _on_delete_event(self, widget, event):
         self.quit()
         return True
+
+    def _on_key_press_event(self, widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.quit()
+            return True
+        return False
 
     def _on_action_about(self, action, dummy=None):
         """Credits dialog"""
