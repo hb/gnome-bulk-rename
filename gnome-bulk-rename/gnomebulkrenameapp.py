@@ -543,7 +543,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
         buttonbox.add(self._rename_button)
         
         try:
-            self._current_preview.grab_focus()
+            self._rename_button.grab_focus()
         except AttributeError:
             pass
         
@@ -879,7 +879,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         self._restore_state()
         
         try:
-            self._current_preview.grab_focus()
+            self._rename_button.grab_focus()
         except AttributeError:
             pass
 
