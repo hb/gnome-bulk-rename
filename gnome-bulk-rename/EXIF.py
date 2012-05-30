@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Library to extract EXIF information from digital camera image files
