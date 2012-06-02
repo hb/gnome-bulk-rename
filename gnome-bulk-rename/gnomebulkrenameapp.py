@@ -215,19 +215,17 @@ class GnomeBulkRenameAppBase(object):
         # markup
         self._current_markup.markup(self._files_model)
         
-        if not did_just_rename:
-            self._checker = check.Checker(self._files_model)
-            self._checker.perform_checks()
-            self._update_rename_button_sensitivity()
-            self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
-        else:
-            self._set_info_bar_according_to_problem_level(0)
+        self._checker = check.Checker(self._files_model)
+        self._checker.perform_checks()
+        self._set_info_bar_according_to_problem_level(self._checker.highest_problem_level)
+        self._update_rename_button_sensitivity()
         
-    
+
     def _filtered_model_row_deleted_cb(self, model, path, combobox):
         # if combobox doesn't have an active path anymore, set the first one
         if combobox.get_active_iter() is None:
             combobox.set_active(0)
+
 
     def _on_tree_selection_changed(self, selection):
         # removing does not exist in simple mode
@@ -235,6 +233,7 @@ class GnomeBulkRenameAppBase(object):
             self._remove_action.set_sensitive(selection.count_selected_rows() > 0)
         except AttributeError:
             pass
+
 
     def _on_rename_button_clicked(self, button):
         self._logger.debug("Starting rename operation")
@@ -284,6 +283,7 @@ class GnomeBulkRenameAppBase(object):
             if fileinfo.get_file_type() == Gio.FileType.DIRECTORY:
                 self._add_folder_children(child, uris, include_hidden)
 
+
     def _add_to_files_model(self, uris):
         """Adds a sequence of uris to the files model.
         
@@ -308,7 +308,6 @@ class GnomeBulkRenameAppBase(object):
         for gfile in gfiles:
             uris.add(gfile.get_uri())
         gfiles = [Gio.file_new_for_uri(uri) for uri in uris]
-
         
         files_to_add = []
         for gfile in gfiles:
@@ -440,27 +439,27 @@ class GnomeBulkRenameAppBase(object):
         undo_action.set_done_callback(self._on_undo_rename_completed)
         self._undo.push(undo_action)
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
+        self._set_info_bar_according_to_rename_operation(len(results.successes), len(results.errors), False)
         
-                    
+        
     def _on_undo_rename_completed(self, results, undo_action):
         self._logger.debug("Undo rename done")
         self._update_files_model_tooltips_column()
-        if len(results.rename_data) > 0:
+        if len(results.successes) > 0:
             undo_action.set_done_callback(self._on_redo_rename_completed)
             self._undo.push_to_redo(undo_action)
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), True)
+        self._set_info_bar_according_to_rename_operation(len(results.successes), len(results.errors), True)
         
 
     def _on_redo_rename_completed(self, results, undo_action):
         self._logger.debug("Redo rename done")
         self._update_files_model_tooltips_column()
-        if len(results.rename_data) > 0:
+        if len(results.successes) > 0:
             undo_action.set_done_callback(self._on_undo_rename_completed)
             self._undo.push_back_to_undo(undo_action)
         self.refresh(did_just_rename=True)
-        self._set_info_bar_according_to_rename_operation(len(results.rename_data), len(results.errors), False)
+        self._set_info_bar_according_to_rename_operation(len(results.successes), len(results.errors), False)
 
 
     def _on_undo_button_clicked(self, button):
@@ -471,6 +470,7 @@ class GnomeBulkRenameAppBase(object):
     def _on_redo_button_clicked(self, button):
         self._logger.debug('redo clicked')
         self._undo.redo()
+
 
 
 class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):

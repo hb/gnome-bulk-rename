@@ -29,176 +29,98 @@ import constants
 
 _logger = logging.getLogger("gnome.bulk-rename.rename") 
 
-
-def _rename(rename_map, done_callback):
-    """rename_map is a list of (GFile, new_display_name, user_data)
-    
-    This function doesn't care for the user_data. The caller may store stuff there,
-    to make it easier to recognize the results in the end."""
-
-    errors = []             # list of (id, error_message)
-    successful_renames = [] # list of (id, gfile)
-    cancellables = {}       # cancellation
-
-
-    def _set_display_name_async_cb(gfile, result, cb_data):
-        (user_data, done_cb) = cb_data
-        try:
-            new_gfile = gfile.set_display_name_finish(result)
-        except RuntimeError as ee:
-            errors.append((user_data, ee.message))
-        else:
-            successful_renames.append((user_data, new_gfile))
-        finally:
-            # cleanup: get rid of corresponding cancellable
-            del cancellables[gfile.get_uri()]
-            # notify if that was the last rename (no cancellables left)
-            if not cancellables:
-                done_cb(successful_renames, errors)
-
-
-    for (gfile, new_display_name, user_data) in rename_map:
-
-        cancellable = Gio.Cancellable()
-        cancellables[gfile.get_uri()] = cancellable
-
-        gfile.set_display_name_async(new_display_name, GLib.PRIORITY_DEFAULT, cancellable, _set_display_name_async_cb, (user_data, done_callback))
-
-    return cancellables
-
-
-class RenameUndoAction(object):
-    def __init__(self, rename_results):
-        self._rename_results = rename_results
-        self._done_cb = None
-        self._id_to_names = {}
-
-
-    def set_done_callback(self, callback):
-        self._done_cb = callback
-
-        
-    def undo(self):
-        def _rename_done_cb(results):
-            self._rename_results = results
-            self._done_cb(results, self)
-
-        # set up list
-        _logger.debug("Starting undo")
-        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, _rename_done_cb, self._set_up_list())
-
-
-    def redo(self):
-        def _rename_done_cb(results):
-            self._rename_results = results
-            self._done_cb(results, self)
-
-        # set up list
-        _logger.debug("Starting redo")
-        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, _rename_done_cb, self._set_up_list())
-
-
-    def _set_up_list(self):
-        rename_map = []
-        for folder_uri, old_name, new_name in self._rename_results.rename_data:
-            rename_map.append((folder_uri, new_name, old_name))
-        return rename_map
-        
-        
-
-class RenameResults(object):
-    """An object representing the results of a rename operation"""
-    def __init__(self, model, two_pass_rename):
-        self.model = model
-        self.two_pass_rename = two_pass_rename
-        self.rename_data = [] # list of (folder_uri, old_name, new_name) for successful renames
-        self.errors = [] # list of ((row, folder_uri, old_name, new_name), error_msg)
-
-
 class Rename(object):
-    """Renames a bunch of files"""
-
-    def __init__(self, model, two_pass=False, done_callback=None, files_to_rename=None):
-        """Constructor starts an async rename immediately, and returns.
+    """Renames a bunch of files asynchronically"""
+    
+    def __init__(self, model, two_pass=False, done_callback=None,  files_to_rename=None):
+        """Constructor starts an async rename operation, and returns immediately.
         
-        If files_to_rename is given, it is a list of (folder_uri, old_name, new_name) to be
+        If files_to_rename is given, it is a list of RenameInfo objects to be
         dealt with instead of the whole model."""
         self._model = model
         self._done_cb = done_callback
         self._num_renames = 0
         self._num_errors = 0
-
+        
         self._cancellables = {}
-
-        if not two_pass:
-            self._single_pass_rename(files_to_rename)
-        else:
+        
+        if two_pass:
             self._two_pass_rename(files_to_rename)
-
+        else:
+            self._single_pass_rename(files_to_rename)
+    
+    
     def cancel(self):
         """Cancels all outstanding operations."""
-        for key,cancellable in self._cancellables.items():
+        for cancellable in self._cancellables.values():
             cancellable.cancel()
-
-
+    
+    
     def _single_pass_rename(self, files_to_rename):
-
+        _logger.debug("Starting rename operation")
+        
         results = RenameResults(self._model, two_pass_rename=False)
-
-        def _rename_done_cb(successful_renames, errors):
-            # update the model
-            for dat, new_gfile in successful_renames:
-                (folder_uri, old_display_name, new_display_name) = dat
-                results.rename_data.append((folder_uri, old_display_name, new_display_name))
-                try:
-                    row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
-                    row[constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
-                    row[constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
-                except TypeError:
-                    pass
-                _logger.debug("Renamed '%s/%s' to '%s'" % (folder_uri, old_display_name, new_display_name))
-
-            self._handle_rename_errors(errors)
-
-            results.errors.extend(errors)
-            # notify real caller
+        
+        def rename_done_cb(successful_renames, errors):
+            """"Update the model and notify caller"""
+            self._handle_successes(results, successful_renames)
+            self._handle_errors(results, errors)
             self._done_cb(results)
 
-
-        # set up list for _rename
-        rename_map = self._get_rename_map(files_to_rename)
-        self._cancellables = _rename(rename_map, _rename_done_cb)
+        # start rename
+        self._cancellables = _rename(self._get_rename_info_list(files_to_rename), rename_done_cb)
 
 
-    def _handle_rename_errors(self, errors):
-        """Mark in model, and/or log in file"""
-        for dat, error_msg in errors:
-            (folder_uri, old_display_name, new_display_name) = dat
-            try:
-                row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
-                row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-                row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg))
-            except TypeError:
-                pass
-            _logger.warning("Could not rename file '%s' to '%s': '%s'" % (old_display_name, new_display_name, error_msg))
+    def _two_pass_rename(self, files_to_rename):
+        _logger.debug("Starting two-pass rename operation")
+        
+        results = RenameResults(self._model, two_pass_rename=True)
+        
+        prefix = "gbr-%010d--" % os.getpid()
+
+        def rename_to_final_done_cb(successful_renames, errors):
+            """"Update the model and notify caller"""
+            self._handle_successes(results, successful_renames)
+            self._handle_errors(results, errors)
+            self._done_cb(results)
+        
+        def rename_to_tmp_done_cb(successful_renames, errors):
+            # handle errors, and queue rename operation to final name
+            
+            self._handle_errors(results, errors)
+            
+            # all successful renames to tmp names should be scheduled for renaming to the final name
+            rename_to_final_info_list = []
+            for success in successful_renames:
+                rename_to_final_info_list.append(_RenameInfo(success.new_gfile, success.rename_info.old_display_name,
+                                                             success.rename_info.new_display_name[len(prefix):],
+                                                             success.rename_info.row_number))
+            self._cancellables = _rename(rename_to_final_info_list, rename_to_final_done_cb)
+        
+        # start first rename pass
+        self._cancellables = _rename(self._get_rename_info_list(files_to_rename, prefix), rename_to_tmp_done_cb)
 
 
-    def _find_row_number_of_gfile(self, gfile):
-        """Returns row number, or None"""
-        for ii,row in enumerate(self._model):
-            if row[constants.FILES_MODEL_COLUMN_GFILE].equal(gfile):
-                return ii
-        return None
-
-    def _find_row_number_of_uri(self, uri):
-        """Returns row number, or None"""
-        return self._find_row_number_of_gfile(Gio.file_new_for_uri(uri))
-
-    def _get_rename_map(self, files_to_rename, prefix=""):
-        rename_map = []
-        if files_to_rename is None:
-            for ii, row in enumerate(self._model):
-                folder_uri = row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]
+    def _get_rename_info_list(self, files_to_rename, prefix=""):
+        """Returns a list of _RenameInfo entries. New display names get an optional prefix.
+        
+        If files_to_rename is not None, it must be a list of GFile's. Only those files
+        will be considered instead of the complete model."""
+        ll = []
+        for ii, row in enumerate(self._model):
+            
+            if files_to_rename:
+                # check if that file is also in files_to_rename list
+                try:
+                    rename_info = next(filter(lambda el : row[constants.FILES_MODEL_COLUMN_GFILE].equal(el.gfile), files_to_rename))
+                except StopIteration:
+                    continue
+                if rename_info.old_display_name == rename_info.new_display_name:
+                    continue
+                rename_info.row_number = ii
+                ll.append(rename_info)
+                
+            else:
                 old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
                 new_display_name = row[constants.FILES_MODEL_COLUMN_PREVIEW]
 
@@ -206,71 +128,139 @@ class Rename(object):
                 if old_display_name == new_display_name:
                     continue
 
-                gfile = row[constants.FILES_MODEL_COLUMN_GFILE]
-                rename_map.append((gfile, prefix+new_display_name, (folder_uri, old_display_name, prefix+new_display_name)))
-                
+                ll.append(_RenameInfo(row[constants.FILES_MODEL_COLUMN_GFILE], old_display_name, new_display_name, ii))
+        
+        if prefix:
+            for el in ll:
+                el.new_display_name = prefix+el.new_display_name
+        
+        return ll
+
+
+    def _handle_successes(self, results, successful_renames):
+        """Update model, and add to results list"""
+        for el in successful_renames:
+            try:
+                row = self._model[el.rename_info.row_number]
+            except IndexError:
+                _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
+                continue
+            
+            old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+            
+            row[constants.FILES_MODEL_COLUMN_ORIGINAL] = el.rename_info.new_display_name
+            row[constants.FILES_MODEL_COLUMN_GFILE] = el.new_gfile
+            
+            _logger.info("Renamed file from '{0}' to '{1}' (directory: {2})"
+                         .format(old_display_name, el.rename_info.new_display_name,
+                                 row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
+            
+            results.successes.append(el)
+
+
+    def _handle_errors(self, results, errors):
+        """Mark errors in model, and add to results list"""
+        for el in errors:
+            try:
+                row = self._model[el.rename_info.row_number]
+            except IndexError:
+                _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
+                continue
+            
+            old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+            
+            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
+            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>{0}: {1}</b> ".format(_("ERROR"), GLib.markup_escape_text(el.error_msg))
+            
+            _logger.warning("Could not rename file from '{0}' to '{1}': '{2}' (directory: {3})"
+                            .format(old_display_name, el.rename_info.new_display_name,
+                                    el.error_msg, row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
+        results.errors.extend(errors)
+
+
+class RenameUndoAction(object):
+    def __init__(self, rename_results):
+        self._rename_results = rename_results
+        self._done_cb = None
+
+    def set_done_callback(self, callback):
+        self._done_cb = callback
+    
+    def undo(self):
+        _logger.debug("Starting undo")
+        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
+
+
+    def redo(self):
+        _logger.debug("Starting undo")
+        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
+
+
+    def _rename_done_cb(self, results):
+        self._rename_results = results
+        self._done_cb(results, self)
+
+
+    def _get_reversed_rename_info_list(self):
+        return [_RenameInfo(el.new_gfile, el.rename_info.new_display_name, el.rename_info.old_display_name, None) for el in self._rename_results.successes]
+
+
+class RenameResults(object):
+    """An object representing the results of a rename operation."""
+    def __init__(self, model, two_pass_rename):
+        self.model = model
+        self.two_pass_rename = two_pass_rename
+        
+        self.successes = [] # list of _RenameSuccess
+        self.errors = []    # list of _RenameError
+
+
+class _RenameInfo(object):
+    """An object representing information about a rename operation."""
+    
+    def __init__(self, gfile, old_display_name, new_display_name, row_number):
+        self.gfile = gfile
+        self.old_display_name = old_display_name
+        self.new_display_name = new_display_name
+        self.row_number = row_number
+
+
+class _RenameError(object):
+    def __init__(self, rename_info, error_msg):
+        self.rename_info = rename_info
+        self.error_msg = error_msg
+
+
+class _RenameSuccess(object):
+    def __init__(self, rename_info, new_gfile):
+        self.rename_info = rename_info
+        self.new_gfile = new_gfile
+
+
+def _rename(rename_list, done_callback):
+    """Rename files. rename_list is a list of _RenameInfo entries."""
+    errors = []             # list of _RenameError entries
+    successful_renames = [] # list of _RenameSuccess entries
+    cancellables = {}
+
+    def set_display_name_async_cb(gfile, result, cb_data):
+        (rename_info, done_cb) = cb_data
+        try:
+            new_gfile = rename_info.gfile.set_display_name_finish(result)
+        except RuntimeError as ee:
+            errors.append(_RenameError(rename_info, ee.message))
         else:
-            for folder_uri, old_display_name, new_display_name in files_to_rename:
-
-                # skip files that don't change name
-                if old_display_name == new_display_name:
-                    continue
-                
-                old_uri = folder_uri + old_display_name
-                gfile = Gio.file_new_for_uri(old_uri)
-                rename_map.append((gfile, prefix+new_display_name, (folder_uri, old_display_name, prefix+new_display_name)))
-
-        return rename_map
-
-
-    def _two_pass_rename(self, files_to_rename):
-
-        results = RenameResults(self._model, two_pass_rename=True)
-
-        prefix = "gbr-%010d--" % os.getpid()
-
-
-        def _rename_back_on_final_errors(successful_renames, errors):
-            for id, error_msg in errors:
-                self._model[id][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-                self._model[id][constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>%s:</b> " % (_("ERROR"), GLib.markup_escape_text(error_msg))
-            
-            self._done_cb(len(successful_renames), len(errors), results)
-
-        def _rename_to_final_done_cb(successful_renames, errors):
-
-            # update the model
-            for dat, new_gfile in successful_renames:
-                (folder_uri, old_display_name, new_display_name) = dat
-                results.rename_data.append((folder_uri, old_display_name, new_display_name))
-                try:
-                    row = self._model[self._find_row_number_of_uri(os.path.join(folder_uri, old_display_name))]
-                    row[constants.FILES_MODEL_COLUMN_ORIGINAL] = new_display_name
-                    row[constants.FILES_MODEL_COLUMN_GFILE] = new_gfile
-                except TypeError:
-                    pass
-                
-            self._handle_rename_errors(errors)
-
-            results.errors.extend(errors)
-
-            # notify real caller
-            self._done_cb(results)
-
-
-        def _rename_to_tmp_done_cb(successful_renames, errors):
-            
-            self._handle_rename_errors(errors)
-            results.errors.extend(errors)
-
-            # all successful renames to tmp names should be scheduled for renaming to final name
-            rename_to_final_map = []
-            for data, new_gfile in successful_renames:
-                (folder_uri, old_display_name, new_display_name) = data
-                news_display_name = new_display_name[len(prefix):]
-                rename_to_final_map.append((new_gfile, news_display_name, (folder_uri, old_display_name, news_display_name)))
-            self._cancellables = _rename(rename_to_final_map, _rename_to_final_done_cb)
-
-        # set up list for _rename to temporary file
-        rename_map = self._get_rename_map(files_to_rename, prefix=prefix)
-        self._cancellables = _rename(rename_map, _rename_to_tmp_done_cb)
+            successful_renames.append(_RenameSuccess(rename_info, new_gfile))
+        finally:
+            # cleanup: get rid of corresponding cancellable
+            del cancellables[rename_info.gfile.get_uri()]
+            # notify if that was the last rename (no cancellables left)
+            if not cancellables:
+                done_cb(successful_renames, errors)
+    
+    for el in rename_list:
+        cancellable = Gio.Cancellable()
+        cancellables[el.gfile.get_uri()] = cancellable
+        el.gfile.set_display_name_async(el.new_display_name, GLib.PRIORITY_DEFAULT, cancellable,
+                                        set_display_name_async_cb, (el, done_callback))
+    return cancellables
