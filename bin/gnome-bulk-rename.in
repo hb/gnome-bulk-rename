@@ -80,6 +80,7 @@ def main(argv=None):
     parser.add_option("-s", "--simple", action="store_true")
     parser.add_option("--register", action="store_true", help=gettext.gettext("Don't start the application, just register with file managers"))
     parser.add_option("-r", "--recursive", action="store_true", help=gettext.gettext("Add files and folders of command line URIs recursively"), default=False)
+    parser.add_option("--log-level", help=gettext.gettext("Log level: One of 'debug', 'info', 'warning', 'error', 'critical'"), default="WARNING")
     (opt, args) = parser.parse_args(args=argv[1:])
 
     # logging
@@ -91,12 +92,16 @@ def main(argv=None):
         logfilename += "-simple"
     logfile =  os.path.join(logdir, logfilename + ".log")
     logger = logging.getLogger("gnome.bulk-rename")
-    logger.setLevel(logging.DEBUG)
     handler = logging.handlers.TimedRotatingFileHandler(logfile, 'D', 7, 4)
-    handler.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s %(name)s [%(levelname)s]: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    try:
+        logger.setLevel(opt.log_level.upper())
+    except ValueError:
+        logger.setLevel(logging.WARNING)
+        logger.warning("Not a valid log level: {0}".format(opt.log_level))
 
     # start the application
     if opt.register:
