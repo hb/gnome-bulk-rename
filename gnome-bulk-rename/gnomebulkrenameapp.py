@@ -236,7 +236,6 @@ class GnomeBulkRenameAppBase(object):
 
 
     def _on_rename_button_clicked(self, button):
-        self._logger.debug("Starting rename operation")
         self._checker.clear_all_warnings_and_errors()
         self._files_info_bar.hide()
         rename.Rename(self._files_model, len(self._checker.circular_uris) > 0, self._on_rename_completed)
@@ -636,7 +635,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
         GnomeBulkRenameAppBase.__init__(self, recursive, uris)
 
         def sorting_combobox_changed(combobox, files_model, order_check, config_container):
-
             gtkutils.clear_gtk_container(config_container)
 
             idx = combobox.get_active()
@@ -885,7 +883,6 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
 
         # show everything
         self._window.show_all()
-
 
 
     def quit(self):

@@ -37,6 +37,12 @@ class Rename(object):
         
         If files_to_rename is given, it is a list of RenameInfo objects to be
         dealt with instead of the whole model."""
+        
+        # disable sorting during rename
+        self._sort_column_id = model.get_sort_column_id()
+        model.set_sort_column_id(constants.GBR_GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, Gtk.SortType.DESCENDING)
+        
+        
         self._model = model
         self._done_cb = done_callback
         self._num_renames = 0
@@ -65,6 +71,7 @@ class Rename(object):
             """"Update the model and notify caller"""
             self._handle_successes(results, successful_renames)
             self._handle_errors(results, errors)
+            self._restore_original_sorting()
             self._done_cb(results)
 
         # start rename
@@ -82,11 +89,10 @@ class Rename(object):
             """"Update the model and notify caller"""
             self._handle_successes(results, successful_renames)
             self._handle_errors(results, errors)
+            self._restore_original_sorting()
             self._done_cb(results)
         
         def rename_to_tmp_done_cb(successful_renames, errors):
-            # handle errors, and queue rename operation to final name
-            
             self._handle_errors(results, errors)
             
             # all successful renames to tmp names should be scheduled for renaming to the final name
@@ -101,10 +107,15 @@ class Rename(object):
         self._cancellables = _rename(self._get_rename_info_list(files_to_rename, prefix), rename_to_tmp_done_cb)
 
 
+    def _restore_original_sorting(self):
+        if all([el is not None for el in self._sort_column_id]):
+            self._model.set_sort_column_id(*self._sort_column_id)
+
+
     def _get_rename_info_list(self, files_to_rename, prefix=""):
         """Returns a list of _RenameInfo entries. New display names get an optional prefix.
         
-        If files_to_rename is not None, it must be a list of GFile's. Only those files
+        If files_to_rename is not None, it must be a list of _RenameInfo objects. Only those files
         will be considered instead of the complete model."""
         ll = []
         for ii, row in enumerate(self._model):
@@ -114,6 +125,7 @@ class Rename(object):
                 try:
                     rename_info = next(filter(lambda el : row[constants.FILES_MODEL_COLUMN_GFILE].equal(el.gfile), files_to_rename))
                 except StopIteration:
+                    _logger.warning("Two-pass-rename: File not found in model: {0}".format(el.gfile.get_uri()))
                     continue
                 if rename_info.old_display_name == rename_info.new_display_name:
                     continue
@@ -147,11 +159,11 @@ class Rename(object):
                 continue
             
             old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
-            
+
             row[constants.FILES_MODEL_COLUMN_ORIGINAL] = el.rename_info.new_display_name
             row[constants.FILES_MODEL_COLUMN_GFILE] = el.new_gfile
             
-            _logger.info("Renamed file from '{0}' to '{1}' (directory: {2})"
+            _logger.info("Renamed file from '{0}' to '{1}' (directory uri: {2})"
                          .format(old_display_name, el.rename_info.new_display_name,
                                  row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
             
@@ -183,20 +195,24 @@ class RenameUndoAction(object):
         self._rename_results = rename_results
         self._done_cb = None
 
+        self._current_renamer = None
+        
     def set_done_callback(self, callback):
         self._done_cb = callback
     
     def undo(self):
         _logger.debug("Starting undo")
-        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
+        self._current_renamer = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
 
 
     def redo(self):
-        _logger.debug("Starting undo")
-        rename = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
+        _logger.debug("Starting redo")
+        self._current_renamer = Rename(self._rename_results.model, self._rename_results.two_pass_rename, self._rename_done_cb, self._get_reversed_rename_info_list())
 
 
     def _rename_done_cb(self, results):
+        self._current_renamer = None
+        
         self._rename_results = results
         self._done_cb(results, self)
 
@@ -223,6 +239,9 @@ class _RenameInfo(object):
         self.old_display_name = old_display_name
         self.new_display_name = new_display_name
         self.row_number = row_number
+    
+    def __str__(self):
+        return "old/new: {0} - {1}, row {2}, gfile: {3}".format(self.old_display_name, self.new_display_name, self.row_number, self.gfile.get_uri())
 
 
 class _RenameError(object):
@@ -235,6 +254,9 @@ class _RenameSuccess(object):
     def __init__(self, rename_info, new_gfile):
         self.rename_info = rename_info
         self.new_gfile = new_gfile
+    
+    def __str__(self):
+        return "new_gfile: {0}, {1}".format(self.new_gfile.get_uri(), str(self.rename_info))
 
 
 def _rename(rename_list, done_callback):
