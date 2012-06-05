@@ -86,8 +86,10 @@ def _get_extensible_model_from_modulname(modulname, required_attributes, model=N
 
     return model
 
+
 def get_user_extension_folder(modulname):
     return os.path.join(config.user_data_dir, modulname)
+
 
 def get_extensible_model(modulname, required_attributes):
     """Returns a Gtk.ListStore of found classes that implement a specific function.

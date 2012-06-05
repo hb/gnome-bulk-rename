@@ -38,14 +38,16 @@ AM_GLIB_GNU_GETTEXT
 IT_PROG_INTLTOOL([0.35.0])
 
 AC_CONFIG_FILES([bin/gnome-bulk-rename], [chmod +x bin/gnome-bulk-rename])
+AC_CONFIG_FILES([test/runtests.py], [chmod +x test/runtests.py])
 
 dnl output
 AC_CONFIG_FILES([
 Makefile
 bin/Makefile
-po/Makefile.in
 gnome-bulk-rename/Makefile
 gnome-bulk-rename/config.py
+po/Makefile.in
+test/Makefile
 ])
 
 AC_OUTPUT

@@ -1,0 +1,50 @@
+#!@PYTHON@
+
+__version__ = "0.0.1"
+
+import sys
+from optparse import OptionParser
+
+import glob
+import sys
+
+import unittest
+import trace
+
+def rununittests(names):
+    testsuite = unittest.TestLoader().loadTestsFromNames(names)
+    runner = unittest.TextTestRunner(verbosity=2)
+    return runner.run(testsuite)
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    parser = OptionParser(usage="%prog", version="%prog " + __version__, description="Run test suite.")
+    parser.add_option("--coverage", action="store_true", default=False, help="Analyze test coverage.")
+    (opt, dummy_args) = parser.parse_args(args=argv[1:])
+
+    names = [el[:-3] for el in glob.iglob("test_*.py")]
+
+    # TODO: factorize this out from bin/gbr
+    sys.path.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename")
+
+    if opt.coverage:
+        ignoremods = ["runtests"]
+        ignoremods.extend(names)
+        tracer = trace.Trace(count=1, trace=0, ignoredirs=["/usr"], ignoremods=ignoremods)
+        testresult = tracer.runfunc(rununittests, names)
+        trace_results = tracer.results()
+        coverdir = "/tmp/gnome-bulk-rename-trace"
+        trace_results.write_results(show_missing=True, summary=True, coverdir=coverdir)
+        print("Wrote detailed trace analysis to '{0}'".format(coverdir))
+    else:
+        testresult = rununittests(names)
+
+    if not testresult.wasSuccessful():
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    #sys.exit(main(["runtests.py", "--coverage"]))
+    sys.exit(main())

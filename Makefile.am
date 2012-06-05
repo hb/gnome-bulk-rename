@@ -3,6 +3,7 @@ AUTOMAKE_OPTIONS = dist-bzip2
 DIRS = \
 	bin \
 	gnome-bulk-rename\
+	test \
 	po
 
 SUBDIRS	= $(DIRS)
