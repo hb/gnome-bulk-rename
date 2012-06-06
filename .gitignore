@@ -17,6 +17,7 @@ bin/gnome-bulk-rename
 intltool-*.in
 m4/intltool.m4
 gnome-bulk-rename/config.py
+test/runtests.py
 .settings
 *.pyc
 .project
