@@ -47,16 +47,17 @@ class MarkupColor(object):
     default = True
     priority = 0.2
     
-    def __init__(self):
+    def __init__(self, delete_color="LightSalmon1", insert_color="Palegreen1", replace_color="LightSkyBlue1"):
         self._matcher = difflib.SequenceMatcher()
-        self._marker_delete_start = "<span bgcolor='LightSalmon1'>"
-        self._marker_delete_end = "</span>"
-        self._marker_insert_start = "<span bgcolor='Palegreen1'>"
-        self._marker_insert_end = "</span>"
-        self._marker_replace_start = "<span bgcolor='LightSkyBlue1'>"
-        self._marker_replace_end = "</span>"
         
-    
+        self._marker_delete_start = "<span bgcolor='{0}'>".format(delete_color)
+        self._marker_delete_end = "</span>"
+        self._marker_insert_start = "<span bgcolor='{0}'>".format(insert_color)
+        self._marker_insert_end = "</span>"
+        self._marker_replace_start = "<span bgcolor='{0}'>".format(replace_color)
+        self._marker_replace_end = "</span>"
+
+
     def markup(self, model):
         for row in model:
             oldstring = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_ORIGINAL])
