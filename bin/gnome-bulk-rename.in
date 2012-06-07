@@ -33,8 +33,6 @@ from gi.repository import Gdk
 
 LIBDIR = '@LIBDIR@'
 
-import gi.repository
-
 def _get_root_dir():
     return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
 
@@ -43,8 +41,7 @@ def _in_devel():
 
 def main(argv=None):
     if _in_devel():
-        folder = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.split(folder)[0]
+        root = _get_root_dir()
         localedir = os.path.join(root, 'po')
     else:
         root = os.path.join(LIBDIR, 'gnome-bulk-rename', 'python')

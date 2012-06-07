@@ -37,7 +37,8 @@ class TestChecker(unittest.TestCase):
     
     def tearDown(self):
         shutil.rmtree(self._tmp_dir)
-        
+    
+    
     def test_all_names_stay_the_same(self):
         chk = check.Checker(self._model_all_same)
         chk.perform_checks()

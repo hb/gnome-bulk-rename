@@ -7,9 +7,14 @@ from optparse import OptionParser
 
 import glob
 import sys
+import os.path
 
 import unittest
 import trace
+
+def _get_root_dir():
+    return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
+
 
 def rununittests(names):
     testsuite = unittest.TestLoader().loadTestsFromNames(names)
@@ -24,11 +29,11 @@ def main(argv=None):
     parser.add_option("--coverage", action="store_true", default=False, help="Analyze test coverage.")
     (opt, dummy_args) = parser.parse_args(args=argv[1:])
 
-    names = [el[:-3] for el in glob.iglob("test_*.py")]
+    names = [os.path.basename(el)[:-3] for el in glob.iglob(os.path.join(_get_root_dir(), "test", "test_*.py"))]
 
-    # TODO: factorize this out from bin/gbr
-    sys.path.insert(0, "/home/hb/src/gnome-bulk-rename/gnome-bulk-rename")
-
+    sys.path.insert(0, os.path.join(_get_root_dir(), "gnome-bulk-rename"))
+    sys.path.insert(0, os.path.join(_get_root_dir(), "test"))
+    
     if opt.coverage:
         ignoremods = ["runtests"]
         ignoremods.extend(names)
