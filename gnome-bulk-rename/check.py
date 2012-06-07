@@ -88,7 +88,7 @@ class Checker(object):
                 self._model[ii][constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
                 self.highest_problem_level = max(self.highest_problem_level, 2)
                 self._add_tooltip_msg(ii, msg)
-                    
+                
     def _check_slash_in_target(self):
         msg = "<b>%s:</b> %s" % (_("ERROR"), _("Slash in target name"))
         for ii,row in enumerate(self._model):
@@ -151,7 +151,4 @@ class Checker(object):
 
 
     def _add_tooltip_msg(self, row_num, msg):
-        if self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] == None:
-            self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = msg
-        else:
-            self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] + "\n" + msg
+        self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] = self._model[row_num][constants.FILES_MODEL_COLUMN_TOOLTIP] + "\n" + msg
