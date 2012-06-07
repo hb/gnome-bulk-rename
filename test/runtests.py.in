@@ -17,6 +17,9 @@ def _get_root_dir():
 
 
 def rununittests(names):
+    # there are checks for messages, so turn off translation
+    os.environ['LC_MESSAGES'] = "C"
+
     testsuite = unittest.TestLoader().loadTestsFromNames(names)
     runner = unittest.TextTestRunner(verbosity=2)
     return runner.run(testsuite)
