@@ -477,7 +477,7 @@ class GnomeBulkRenameAppSimple(GnomeBulkRenameAppBase):
 
     def __init__(self, recursive, uris=None):
         # logger
-        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename-simple")
+        self._logger = logging.getLogger("gnome.bulk-rename.app-simple")
         self._logger.debug("init")
 
         GnomeBulkRenameAppBase.__init__(self, recursive, uris)
@@ -629,7 +629,7 @@ class GnomeBulkRenameApp(GnomeBulkRenameAppBase):
     def __init__(self, recursive, uris=None):
         """constructor"""
         # logger
-        self._logger = logging.getLogger("gnome.bulk-rename.bulk-rename")
+        self._logger = logging.getLogger("gnome.bulk-rename.app")
         self._logger.debug("init")
 
         GnomeBulkRenameAppBase.__init__(self, recursive, uris)

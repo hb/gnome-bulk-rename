@@ -763,7 +763,7 @@ try:
     from mutagen.id3 import ID3NoHeaderError
     from mutagen.oggvorbis import OggVorbis,OggVorbisHeaderError
 except ImportError:
-    __logger = logging.getLogger("gnome.bulk-rename")
+    __logger = logging.getLogger("gnome.bulk-rename.preview")
     __logger.info("Mutagen module not found, disabling renaming based on audio tags.")
 else:
     class PreviewAudioData(object):
@@ -774,7 +774,7 @@ else:
         def __init__(self, refresh_func, model):
             self._refresh_func = refresh_func
             
-            self.__logger = logging.getLogger("gnome.bulk-rename")
+            self.__logger = logging.getLogger("gnome.bulk-rename.preview.audio-data")
             self._translation_table = str.maketrans("/", "_")
             
             vbox = Gtk.VBox.new(False, 4)
