@@ -75,7 +75,8 @@ class Rename(object):
             self._done_cb(results)
 
         # start rename
-        self._cancellables = _rename(self._get_rename_info_list(files_to_rename), rename_done_cb)
+        manager = _RenameTaskManager(self._get_rename_info_list(files_to_rename))
+        manager.start(rename_done_cb)
 
 
     def _two_pass_rename(self, files_to_rename):
@@ -92,19 +93,23 @@ class Rename(object):
             self._restore_original_sorting()
             self._done_cb(results)
         
-        def rename_to_tmp_done_cb(successful_renames, errors):
-            self._handle_errors(results, errors)
+        
+        def rename_to_tmp_done_cb(successful_renames_list, errors_list):
+            self._handle_errors(results, errors_list)
             
             # all successful renames to tmp names should be scheduled for renaming to the final name
             rename_to_final_info_list = []
-            for success in successful_renames:
-                rename_to_final_info_list.append(_RenameInfo(success.new_gfile, success.rename_info.old_display_name,
-                                                             success.rename_info.new_display_name[len(prefix):],
-                                                             success.rename_info.row_number))
-            self._cancellables = _rename(rename_to_final_info_list, rename_to_final_done_cb)
+            for successful_renames in successful_renames_list:
+                for success in successful_renames:
+                    rename_to_final_info_list.append(_RenameInfo(success.new_gfile, success.rename_info.old_display_name,
+                                                                 success.rename_info.new_display_name[len(prefix):],
+                                                                 success.rename_info.row_number))
+            manager = _RenameTaskManager(rename_to_final_info_list)
+            manager.start(rename_to_final_done_cb)
         
         # start first rename pass
-        self._cancellables = _rename(self._get_rename_info_list(files_to_rename, prefix), rename_to_tmp_done_cb)
+        manager = _RenameTaskManager(self._get_rename_info_list(files_to_rename, prefix))
+        manager.start(rename_to_tmp_done_cb)
 
 
     def _restore_original_sorting(self):
@@ -125,7 +130,6 @@ class Rename(object):
                 try:
                     rename_info = next(filter(lambda el : row[constants.FILES_MODEL_COLUMN_GFILE].equal(el.gfile), files_to_rename))
                 except StopIteration:
-                    _logger.warning("Two-pass-rename: File not found in model: {0}".format(el.gfile.get_uri()))
                     continue
                 if rename_info.old_display_name == rename_info.new_display_name:
                     continue
@@ -149,45 +153,47 @@ class Rename(object):
         return ll
 
 
-    def _handle_successes(self, results, successful_renames):
+    def _handle_successes(self, results, successful_renames_list):
         """Update model, and add to results list"""
-        for el in successful_renames:
-            try:
-                row = self._model[el.rename_info.row_number]
-            except IndexError:
-                _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
-                continue
-            
-            old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+        for successful_renames in successful_renames_list:
+            for el in successful_renames:
+                try:
+                    row = self._model[el.rename_info.row_number]
+                except IndexError:
+                    _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
+                    continue
+                
+                old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+    
+                row[constants.FILES_MODEL_COLUMN_ORIGINAL] = el.rename_info.new_display_name
+                row[constants.FILES_MODEL_COLUMN_GFILE] = el.new_gfile
+                
+                _logger.info("Renamed file from '{0}' to '{1}' (directory uri: {2})"
+                             .format(old_display_name, el.rename_info.new_display_name,
+                                     row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
+                
+                results.successes.append(el)
 
-            row[constants.FILES_MODEL_COLUMN_ORIGINAL] = el.rename_info.new_display_name
-            row[constants.FILES_MODEL_COLUMN_GFILE] = el.new_gfile
-            
-            _logger.info("Renamed file from '{0}' to '{1}' (directory uri: {2})"
-                         .format(old_display_name, el.rename_info.new_display_name,
-                                 row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
-            
-            results.successes.append(el)
 
-
-    def _handle_errors(self, results, errors):
+    def _handle_errors(self, results, errors_list):
         """Mark errors in model, and add to results list"""
-        for el in errors:
-            try:
-                row = self._model[el.rename_info.row_number]
-            except IndexError:
-                _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
-                continue
-            
-            old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
-            
-            row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
-            row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>{0}: {1}</b> ".format(_("ERROR"), GLib.markup_escape_text(el.error_msg))
-            
-            _logger.warning("Could not rename file from '{0}' to '{1}': '{2}' (directory: {3})"
-                            .format(old_display_name, el.rename_info.new_display_name,
-                                    el.error_msg, row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
-        results.errors.extend(errors)
+        for errors in errors_list:
+            for el in errors:
+                try:
+                    row = self._model[el.rename_info.row_number]
+                except IndexError:
+                    _logger.error("Model index error during rename: No row number {0}".format(el.rename_info.row_number))
+                    continue
+                
+                old_display_name = row[constants.FILES_MODEL_COLUMN_ORIGINAL]
+                
+                row[constants.FILES_MODEL_COLUMN_ICON_STOCK] = Gtk.STOCK_DIALOG_ERROR
+                row[constants.FILES_MODEL_COLUMN_TOOLTIP] = "<b>{0}: {1}</b> ".format(_("ERROR"), GLib.markup_escape_text(el.error_msg))
+                
+                _logger.warning("Could not rename file from '{0}' to '{1}': '{2}' (directory: {3})"
+                                .format(old_display_name, el.rename_info.new_display_name,
+                                        el.error_msg, row[constants.FILES_MODEL_COLUMN_URI_DIRNAME]))
+            results.errors.extend(errors)
 
 
 class RenameUndoAction(object):
@@ -259,30 +265,145 @@ class _RenameSuccess(object):
         return "new_gfile: {0}, {1}".format(self.new_gfile.get_uri(), str(self.rename_info))
 
 
-def _rename(rename_list, done_callback):
-    """Rename files. rename_list is a list of _RenameInfo entries."""
-    errors = []             # list of _RenameError entries
-    successful_renames = [] # list of _RenameSuccess entries
-    cancellables = {}
 
-    def set_display_name_async_cb(gfile, result, cb_data):
-        (rename_info, done_cb) = cb_data
+class _RenameTaskManager(object):
+    def __init__(self, rename_list):
+        self._tasks = self._create_rename_tasks_list(rename_list)
+
+        self._done_cb = None
+        self._current_task = None
+        self._successful_renames_list = []
+        self._errors_list = []
+    
+    
+    def start(self, done_callback):
+        assert self._tasks
+
+        self._done_cb = done_callback
+        self._start_next_task()
+    
+    
+    def cancel(self):
+        raise NotImplementedError
+    
+    
+    def _start_next_task(self):
+        self._current_task = self._tasks.pop(0)
+        self._current_task.start(self._task_done_cb)
+        
+    
+    def _task_done_cb(self, successful_renames, errors):
+        # successful renames
+        # iterate over previous renames, modifying the path if a new rename is a prefix of an old rename
+        for old_successful_renames in self._successful_renames_list:
+            for old_success in old_successful_renames:
+                for success in successful_renames:
+                    if old_success.new_gfile.has_prefix(success.rename_info.gfile):
+                        old_uri = old_success.new_gfile.get_uri()
+                        rel_path = success.rename_info.gfile.get_relative_path(old_success.new_gfile)
+                        old_success.new_gfile = success.new_gfile.resolve_relative_path(rel_path)
+                        _logger.debug("Prefix {0} got renamed; switched new uri from {1} to {2}"
+                                      .format(success.rename_info.gfile.get_uri(),
+                                              old_uri,
+                                              old_success.new_gfile.get_uri()))
+        self._successful_renames_list.append(successful_renames)
+        self._errors_list.append(errors)
+        
+        if self._tasks:
+            self._start_next_task()
+        else:
+            if self._done_cb is not None:
+                self._done_cb(self._successful_renames_list, self._errors_list)
+                
+    
+    @staticmethod
+    def _create_rename_tasks_list(rename_list):
+        # Create rename tasks which, when executed in order, don't pose
+        # problems to the rename process (for example, don't rename a folder
+        # and then a file in that folder, because the path of that file wouldn't
+        # exist anymore by then.
+
+        rename_list = list(rename_list)
+
+        tasks_list = []
+        
+        # first: grab all files, they can't cause any harm
+        entries = []
+        for ii, el in enumerate(rename_list):
+            if el.gfile.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) != Gio.FileType.DIRECTORY:
+                entries.append(el)
+                rename_list[ii] = None
+        if entries:
+            tasks_list.append(entries)
+        #condense list
+        rename_list = [el for el in rename_list if el is not None]
+        
+        # next: all directories that are not prefixes of any other directory
+        found_prefix = True
+        while rename_list:
+            entries = []
+            for ii, el in enumerate(rename_list):
+                found_prefix = False
+                if el is None:
+                    continue
+                for jj, el2 in enumerate(rename_list):
+                    
+                    if el2 is None or ii == jj:
+                        continue
+                    
+                    # if el is not a prefix of any other file, it's safe
+                    if el2.gfile.has_prefix(el.gfile) and not el2.gfile.equal(el.gfile):
+                        found_prefix = True
+                        break
+                
+                if not found_prefix:
+                    entries.append(el)
+                    rename_list[ii] = None
+            rename_list = [el for el in rename_list if el is not None]
+            if entries:
+                tasks_list.append(entries)
+                
+        assert len(rename_list) == 0
+        return [_RenameTask(el) for el in tasks_list]
+
+
+class _RenameTask(object):
+    def __init__(self, task):
+        """task is a list of RenameInfo objects"""
+        self._task = task
+        self._done_cb = None
+
+        self._errors = []             # list of _RenameError entries
+        self._successful_renames = [] # list of _RenameSuccess entries
+        self._cancellables = {}
+        
+    
+    
+    def start(self, done_callback):
+        """Start rename task"""
+        self._done_cb = done_callback
+        for el in self._task:
+            cancellable = Gio.Cancellable()
+            self._cancellables[el.gfile.get_uri()] = cancellable
+            el.gfile.set_display_name_async(el.new_display_name, GLib.PRIORITY_DEFAULT, cancellable,
+                                            self._set_display_name_async_cb, el)
+
+
+    def cancel(self):
+        """Cancel ongoing rename task"""
+        raise NotImplementedError
+
+
+    def _set_display_name_async_cb(self, gfile, result, rename_info):
         try:
             new_gfile = rename_info.gfile.set_display_name_finish(result)
         except RuntimeError as ee:
-            errors.append(_RenameError(rename_info, ee.message))
+            self._errors.append(_RenameError(rename_info, ee.message))
         else:
-            successful_renames.append(_RenameSuccess(rename_info, new_gfile))
+            self._successful_renames.append(_RenameSuccess(rename_info, new_gfile))
         finally:
             # cleanup: get rid of corresponding cancellable
-            del cancellables[rename_info.gfile.get_uri()]
+            del self._cancellables[rename_info.gfile.get_uri()]
             # notify if that was the last rename (no cancellables left)
-            if not cancellables:
-                done_cb(successful_renames, errors)
-    
-    for el in rename_list:
-        cancellable = Gio.Cancellable()
-        cancellables[el.gfile.get_uri()] = cancellable
-        el.gfile.set_display_name_async(el.new_display_name, GLib.PRIORITY_DEFAULT, cancellable,
-                                        set_display_name_async_cb, (el, done_callback))
-    return cancellables
+            if not self._cancellables and self._done_cb is not None:
+                self._done_cb(self._successful_renames, self._errors)

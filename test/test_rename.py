@@ -10,14 +10,16 @@ import rename
 import constants as c
 
 class _NameMap:
-    def __init__(self, row):
+    def __init__(self, row, target_rel_dir=None):
         self.gfile_orig = row[c.FILES_MODEL_COLUMN_GFILE]
-        self.orig_uri = self.gfile_orig.get_uri()
-        try:
-            base_uri = row[c.FILES_MODEL_COLUMN_GFILE].get_parent().get_uri()
-        except AttributeError:
-            base_uri = ""
-        self.gfile_prev = Gio.file_new_for_commandline_arg(base_uri+"/"+row[c.FILES_MODEL_COLUMN_PREVIEW])
+        if target_rel_dir is None:
+            try:
+                base_uri = row[c.FILES_MODEL_COLUMN_GFILE].get_parent().get_uri()
+            except AttributeError:
+                base_uri = ""
+            self.gfile_prev = Gio.file_new_for_commandline_arg(base_uri+"/"+row[c.FILES_MODEL_COLUMN_PREVIEW])
+        else:
+            self.gfile_prev = Gio.file_new_for_commandline_arg(target_rel_dir+"/"+row[c.FILES_MODEL_COLUMN_PREVIEW])
 
 
 
@@ -90,22 +92,24 @@ class TestRenamer(unittest.TestCase):
     def _check_renamed_files(self):
         for mp in self._mapping:
             # check that the target files really exist, and source files are gone
-            if not self._two_pass:
-                self.assertFalse(mp.gfile_orig.query_exists(None), mp.gfile_orig.get_uri())
-            self.assertTrue(mp.gfile_prev.query_exists(None), mp.gfile_orig.get_uri())
+            if not self._two_pass and not mp.gfile_orig.equal(mp.gfile_prev):
+                self.assertFalse(mp.gfile_orig.query_exists(None), "File exists, but shouldn't: {0}".format(mp.gfile_orig.get_uri()))
+            self.assertTrue(mp.gfile_prev.query_exists(None), "File should exist, but doesn't: {0}".format(mp.gfile_prev.get_uri()))
             
             # check that it's really the right files
-            success, contents = mp.gfile_prev.load_contents(None)[0:2]
-            self.assertTrue(success)
-            contents = contents.decode("utf-8").strip()
-            self.assertEqual(contents, mp.gfile_orig.get_uri())
+            if mp.gfile_prev.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) != Gio.FileType.DIRECTORY:
+                try:
+                    success, contents = mp.gfile_prev.load_contents(None)[0:2]
+                except Exception as ee:
+                    self._fail_msg = "Error loading contents of preview file '{0}': {1}".format(mp.gfile_prev.get_uri(), ee.message)
+                else:
+                    self.assertTrue(success)
+                    contents = contents.decode("utf-8").strip()
+                    self.assertEqual(contents, mp.gfile_orig.get_uri())
 
 
     def _cb_test_rename(self, results):
-        try:
-            self._check_renamed_files()
-        except Exception as ee:
-            self._fail_msg = ee.message
+        self._check_renamed_files()
         Gtk.main_quit()
 
 
@@ -113,6 +117,8 @@ class TestRenamer(unittest.TestCase):
         # easy rename of a bunch of files
         for ii in range(10):
             self._create_and_add_file_to_model(self._model, "Test{0}".format(ii), "Renamed{0}".format(ii))
+        self._create_and_add_file_to_model(self._model, "Same", "Same")
+            
         self._mapping = self._get_mapping(self._model)
         
         rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
@@ -120,6 +126,7 @@ class TestRenamer(unittest.TestCase):
         self._cond_fail()
 
 
+    
     def test_rename_cycle(self):
         # rename a bunch of files which cycle
         for ii in range(5):
@@ -131,22 +138,55 @@ class TestRenamer(unittest.TestCase):
         self._cond_fail()
     
     
-    @unittest.expectedFailure
     def test_rename_folders_and_files(self):
+        self._create_and_add_directory_to_model(self._model, "dir_1", "renamed_dir_1")
+        self._create_and_add_file_to_model(self._model, "file_1", "renamed_file_1")
+        self._create_and_add_file_to_model(self._model, "file_2", "renamed_file_2")
+        self._create_and_add_directory_to_model(self._model, "dir_2", "renamed_dir_2")
+
+        self._mapping = self._get_mapping(self._model)
+        
+        rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
+        Gtk.main()
+        self._cond_fail()
+
+
+    def test_rename_folders_and_nested_files(self):
         # rename files in a directory structure
         self._create_and_add_directory_to_model(self._model, "dir_1", "renamed_dir_1")
         self._create_and_add_file_to_model(self._model, "file_1", "renamed_file_1")
         self._create_and_add_file_to_model(self._model, "file_2", "renamed_file_2", "dir_1")
         
-        self._mapping = self._get_mapping(self._model)
+        # cannot use _get_mapping() with recursive files/dirs
+        self._mapping = []
+        self._mapping.append(_NameMap(self._model[0]))
+        self._mapping.append(_NameMap(self._model[1]))
+        self._mapping.append(_NameMap(self._model[2], self._tmp_dir+"/renamed_dir_1"))
+        
         rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
         Gtk.main()
         self._cond_fail()
     
     
-    @unittest.expectedFailure
     def test_rename_foldertree(self):
-        raise NotImplementedError
+        # rename dirs and files in a directory structure
+        self._create_and_add_directory_to_model(self._model, "dir_1", "renamed_dir_1")
+        self._create_and_add_file_to_model(self._model, "file_1", "renamed_file_1")
+        self._create_and_add_directory_to_model(self._model, "dir_2", "renamed_dir_2", "dir_1")
+        self._create_and_add_file_to_model(self._model, "file_2", "renamed_file_2", "dir_1")
+        self._create_and_add_file_to_model(self._model, "file_3", "renamed_file_3", "dir_1/dir_2")
+        
+        self._mapping = []
+        self._mapping.append(_NameMap(self._model[0]))
+        self._mapping.append(_NameMap(self._model[1]))
+        self._mapping.append(_NameMap(self._model[2], self._tmp_dir+"/renamed_dir_1"))
+        self._mapping.append(_NameMap(self._model[3], self._tmp_dir+"/renamed_dir_1"))
+        self._mapping.append(_NameMap(self._model[4], self._tmp_dir+"/renamed_dir_1/renamed_dir_2"))
+        
+        rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
+        Gtk.main()
+        self._cond_fail()
+    
     
     
     @unittest.expectedFailure
