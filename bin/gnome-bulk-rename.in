@@ -19,7 +19,7 @@
 
 
 import sys
-from optparse import OptionParser
+from argparse import ArgumentParser
 import logging
 import logging.handlers
 import os
@@ -71,29 +71,36 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = OptionParser(usage="%prog [options] [uri1, uri2, ...]", version="%prog " + config.version, description=_("Bulk rename tool for GNOME"))
-    parser.add_option("-s", "--simple", action="store_true")
-    parser.add_option("--register", action="store_true", help=_("Don't start the application, just register with file managers"))
-    parser.add_option("-r", "--recursive", action="store_true", help=_("Add files and folders of command line URIs recursively"), default=False)
-    parser.add_option("--log-level", help=_("Log level: One of 'debug', 'info', 'warning', 'error', 'critical'"), default="WARNING")
-    parser.add_option("--print-resources", action="store_true", help=_("Print locations of resources on the filesystem, and exit"))
-    (opt, args) = parser.parse_args(args=argv[1:])
+    parser = ArgumentParser(description=_("Bulk rename tool for GNOME"))
+    parser.add_argument("--version", action="version", version="%(prog)s "+config.version)
+    
+    # optional arguments
+    parser.add_argument("-s", "--simple", action="store_true")
+    parser.add_argument("--register", action="store_true", help=_("Don't start the application, just register with file managers"))
+    parser.add_argument("-r", "--recursive", action="store_true", help=_("Add files and folders of command line URIs recursively"), default=False)
+    parser.add_argument("--log-level", help=_("Log level: One of 'debug', 'info', 'warning', 'error', 'critical'"), default="WARNING")
+    parser.add_argument("--print-resources", action="store_true", help=_("Print locations of resources on the filesystem, and exit"))
+    
+    # positional arguments
+    parser.add_argument("uri", nargs="*")
+    
+    args = parser.parse_args(args=argv[1:])
 
-    if opt.print_resources:
+    if args.print_resources:
         import collect
         print(_("Search folders for additional preview functionality:\n {0}").format(collect.get_user_extension_folder("preview")))
         print()
         print(_("Search folders for additional markup functionality:\n {0}").format(collect.get_user_extension_folder("markup")))
         print()
         print(_("Search folders for additional sort functionality:\n {0}").format(collect.get_user_extension_folder("sort")))
-        sys.exit(0)
+        return 0
 
     # logging
     logdir = os.path.join(config.config_dir, "log")
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
     logfilename = config.appname
-    if opt.simple:
+    if args.simple:
         logfilename += "-simple"
     logfile =  os.path.join(logdir, logfilename + ".log")
     logger = logging.getLogger("gnome.bulk-rename")
@@ -103,21 +110,21 @@ def main(argv=None):
     logger.addHandler(handler)
 
     try:
-        logger.setLevel(opt.log_level.upper())
+        logger.setLevel(args.log_level.upper())
     except ValueError:
         logger.setLevel(logging.WARNING)
-        logger.warning("Not a valid log level: {0}".format(opt.log_level))
+        logger.warning("Not a valid log level: {0}".format(args.log_level))
 
     # start the application
-    if opt.register:
+    if args.register:
         register.startup_check_file_managers(logger)
     else:
         from gnomebulkrenameapp import GnomeBulkRenameApp, GnomeBulkRenameAppSimple
         
-        if opt.simple:
-            app = GnomeBulkRenameAppSimple(opt.recursive, args)
+        if args.simple:
+            app = GnomeBulkRenameAppSimple(args.recursive, args.uri)
         else:
-            app = GnomeBulkRenameApp(opt.recursive, args)
+            app = GnomeBulkRenameApp(args.recursive, args.uri)
         Gtk.main()
 
 if __name__ == "__main__":
