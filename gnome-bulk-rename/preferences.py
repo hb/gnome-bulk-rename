@@ -19,7 +19,7 @@ from gi.repository import Gtk
 
 import constants
 
-class Window(object):
+class Window:
     
     def __init__(self, previews_model, sorting_model, markups_model, markup_changed_cb):
         self._window = None

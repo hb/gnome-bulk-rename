@@ -27,7 +27,7 @@ import constants
 
 _logger = logging.getLogger("gnome.bulk-rename.rename") 
 
-class Rename(object):
+class Rename:
     """Renames a bunch of files asynchronically"""
     
     def __init__(self, model, two_pass=False, done_callback=None,  files_to_rename=None):
@@ -194,7 +194,7 @@ class Rename(object):
             results.errors.extend(errors)
 
 
-class RenameUndoAction(object):
+class RenameUndoAction:
     def __init__(self, rename_results):
         self._rename_results = rename_results
         self._done_cb = None
@@ -225,7 +225,7 @@ class RenameUndoAction(object):
         return [_RenameInfo(el.new_gfile, el.rename_info.new_display_name, el.rename_info.old_display_name, None) for el in self._rename_results.successes]
 
 
-class RenameResults(object):
+class RenameResults:
     """An object representing the results of a rename operation."""
     def __init__(self, model, two_pass_rename):
         self.model = model
@@ -235,7 +235,7 @@ class RenameResults(object):
         self.errors = []    # list of _RenameError
 
 
-class _RenameInfo(object):
+class _RenameInfo:
     """An object representing information about a rename operation."""
     
     def __init__(self, gfile, old_display_name, new_display_name, row_number):
@@ -248,13 +248,13 @@ class _RenameInfo(object):
         return "old/new: {0} - {1}, row {2}, gfile: {3}".format(self.old_display_name, self.new_display_name, self.row_number, self.gfile.get_uri())
 
 
-class _RenameError(object):
+class _RenameError:
     def __init__(self, rename_info, error_msg):
         self.rename_info = rename_info
         self.error_msg = error_msg
 
 
-class _RenameSuccess(object):
+class _RenameSuccess:
     def __init__(self, rename_info, new_gfile):
         self.rename_info = rename_info
         self.new_gfile = new_gfile
@@ -264,7 +264,7 @@ class _RenameSuccess(object):
 
 
 
-class _RenameTaskManager(object):
+class _RenameTaskManager:
     def __init__(self, rename_list):
         self._tasks = self._create_rename_tasks_list(rename_list)
 
@@ -365,7 +365,7 @@ class _RenameTaskManager(object):
         return [_RenameTask(el) for el in tasks_list]
 
 
-class _RenameTask(object):
+class _RenameTask:
     def __init__(self, task):
         """task is a list of RenameInfo objects"""
         self._task = task

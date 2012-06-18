@@ -61,7 +61,7 @@ def long_substr(model):
 
 
 
-class PreviewTranslate(object):
+class PreviewTranslate:
     """General character translation"""
 
     def __init__(self, refresh_func, model):
@@ -87,7 +87,7 @@ class PreviewReplaceSpacesWithUnderscores(PreviewTranslate):
         self.set_source_and_target(" ", "_")
 
 
-class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
+class PreviewReplaceAllNonAlphanumericWithUnderscores:
     
     short_description = _("Replace all non-alphanumeric characters with underscores")
     skip = True
@@ -100,7 +100,7 @@ class PreviewReplaceAllNonAlphanumericWithUnderscores(object):
             row[1] = self._pattern.sub("_", row[0])
     
 
-class PreviewReplaceLongestSubstring(object):
+class PreviewReplaceLongestSubstring:
 
     short_description = _("Modify common name part")
     skip = True
@@ -161,7 +161,7 @@ class PreviewReplaceLongestSubstring(object):
             self._replacement_string_entry.set_sensitive(True)
 
 
-class PreviewSearchReplace(object):
+class PreviewSearchReplace:
     """Search/replace previewer"""
     
     short_description = _("Search / replace")
@@ -246,7 +246,7 @@ class PreviewSearchReplace(object):
                 self._valid = False
 
 
-class PreviewToUpper(object):
+class PreviewToUpper:
     
     short_description = _("Convert to upper case")
     skip = True
@@ -259,7 +259,7 @@ class PreviewToUpper(object):
             row[1] = row[0].upper()
 
 
-class PreviewToLower(object):
+class PreviewToLower:
     
     short_description = _("Convert to lower case")
     skip = True
@@ -272,7 +272,7 @@ class PreviewToLower(object):
             row[1] = row[0].lower()
 
 
-class PreviewToTitle(object):
+class PreviewToTitle:
     
     short_description = _("Convert to title case")
     skip = True
@@ -285,7 +285,7 @@ class PreviewToTitle(object):
             row[1] = row[0].title()
 
 
-class PreviewEnumerate(object):
+class PreviewEnumerate:
     
     short_description = _("Enumerations")
     priority = 0.6
@@ -403,7 +403,7 @@ class PreviewEnumerate(object):
         self._refresh_func()
 
 
-class PreviewCommonModificationsSimple(object):
+class PreviewCommonModificationsSimple:
     """This previewer is intended as a fallback for the longest substring replacement
     in cases where no such substring exists"""
     
@@ -463,7 +463,7 @@ class PreviewCommonModificationsSimple(object):
         self._refresh_func()
 
 
-class PreviewCommonModifications(object):
+class PreviewCommonModifications:
     
     short_description = _("Common specialized modifications")
     priority = 0.1
@@ -562,7 +562,7 @@ class PreviewCommonModifications(object):
         self._refresh_func()
 
 
-class PreviewNoop(object):
+class PreviewNoop:
     """Source name is identical to target name."""
 
     short_description = "No change"
@@ -578,7 +578,7 @@ class PreviewNoop(object):
             row[1] = row[0]
 
 
-class PreviewReplaceEverySecondWithFixedString(object):
+class PreviewReplaceEverySecondWithFixedString:
     """Just for testing"""
     
     short_description = "Replace with fixed string"
@@ -597,7 +597,7 @@ class PreviewReplaceEverySecondWithFixedString(object):
                 row[1] = row[0]
 
 
-class PreviewCircleNames(object):
+class PreviewCircleNames:
     """Just for testing"""
 
     short_description = "Circle names"
@@ -634,7 +634,7 @@ class PreviewToggleSpaceUnderscore(PreviewTranslate):
         PreviewToggleSpaceUnderscore.ct += 1
 
 
-class PreviewImageMeta(object):
+class PreviewImageMeta:
     """Handle image EXIF metadata"""
     
     short_description = _("Image metadata")
@@ -764,7 +764,7 @@ except ImportError:
     __logger = logging.getLogger("gnome.bulk-rename.preview")
     __logger.info("Mutagen module not found, disabling renaming based on audio tags.")
 else:
-    class PreviewAudioData(object):
+    class PreviewAudioData:
         """Handle audio metadata"""
     
         short_description = _("Audio metadata")

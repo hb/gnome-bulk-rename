@@ -48,7 +48,7 @@ def _get_setting_string():
     return config.appname + " -s"
 
 
-class _Nautilus(object):
+class _Nautilus:
     
     def __init__(self):
         

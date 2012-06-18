@@ -25,7 +25,7 @@ from gi.repository import GLib
 import constants
 
 
-class MarkupNoop(object):
+class MarkupNoop:
     """No additional markup"""
     
     short_description = _("No markup")
@@ -38,7 +38,7 @@ class MarkupNoop(object):
             row[constants.FILES_MODEL_COLUMN_MARKUP_PREVIEW] = GLib.markup_escape_text(row[constants.FILES_MODEL_COLUMN_PREVIEW])
 
 
-class MarkupColor(object):
+class MarkupColor:
     """Colored markup"""
     
     short_description = _("Colored markup")

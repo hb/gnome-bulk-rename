@@ -25,7 +25,7 @@ from gi.repository import GLib
 import constants
 
 
-class Checker(object):
+class Checker:
     """Perform various checks on a model"""
 
     def __init__(self, model):

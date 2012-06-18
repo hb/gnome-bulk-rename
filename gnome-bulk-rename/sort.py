@@ -22,10 +22,10 @@ from gi.repository import Gtk
 import constants
 import utils
 
-class Manually(object):
+class Manually:
     description = _("No automatic sorting is applied to the files. It is possible to rearrange the files by drag and drop.")
 
-class ByName(object):
+class ByName:
     
     # TRANSLATORS: This string is used in a selection for sorting
     short_description = _("by name")

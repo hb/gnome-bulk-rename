@@ -42,7 +42,7 @@ import preferences
 import register
 
 
-class GnomeBulkRenameAppBase(object):
+class GnomeBulkRenameAppBase:
     """Base class for bulk renamer frontends"""
 
     DND_INFO_TEXT = 93
