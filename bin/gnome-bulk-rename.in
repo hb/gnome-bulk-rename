@@ -52,16 +52,14 @@ def main(argv=None):
     if not root in sys.path:
         sys.path.insert(0, root)
 
-    # Added for i18n
+    # i18n
     try:
         locale.setlocale(locale.LC_ALL, '')
         locale.bindtextdomain('gnome-bulk-rename', localedir)
         locale.textdomain('gnome-bulk-rename')
-
-        gettext.bindtextdomain('gnome-bulk-rename', localedir)
-        gettext.textdomain('gnome-bulk-rename')
     except:
         print("Couldn't set locale, reverting to C locale")
+    gettext.install('@GETTEXT_PACKAGE@', localedir)
 
     import config
     import register
@@ -73,21 +71,21 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    parser = OptionParser(usage="%prog [options] [uri1, uri2, ...]", version="%prog " + config.version, description=gettext.gettext("Bulk rename tool for GNOME"))
+    parser = OptionParser(usage="%prog [options] [uri1, uri2, ...]", version="%prog " + config.version, description=_("Bulk rename tool for GNOME"))
     parser.add_option("-s", "--simple", action="store_true")
-    parser.add_option("--register", action="store_true", help=gettext.gettext("Don't start the application, just register with file managers"))
-    parser.add_option("-r", "--recursive", action="store_true", help=gettext.gettext("Add files and folders of command line URIs recursively"), default=False)
-    parser.add_option("--log-level", help=gettext.gettext("Log level: One of 'debug', 'info', 'warning', 'error', 'critical'"), default="WARNING")
-    parser.add_option("--print-resources", action="store_true", help=gettext.gettext("Print locations of resources on the filesystem, and exit"))
+    parser.add_option("--register", action="store_true", help=_("Don't start the application, just register with file managers"))
+    parser.add_option("-r", "--recursive", action="store_true", help=_("Add files and folders of command line URIs recursively"), default=False)
+    parser.add_option("--log-level", help=_("Log level: One of 'debug', 'info', 'warning', 'error', 'critical'"), default="WARNING")
+    parser.add_option("--print-resources", action="store_true", help=_("Print locations of resources on the filesystem, and exit"))
     (opt, args) = parser.parse_args(args=argv[1:])
 
     if opt.print_resources:
         import collect
-        print(gettext.gettext("Search folders for additional preview functionality:\n {0}").format(collect.get_user_extension_folder("preview")))
+        print(_("Search folders for additional preview functionality:\n {0}").format(collect.get_user_extension_folder("preview")))
         print()
-        print(gettext.gettext("Search folders for additional markup functionality:\n {0}").format(collect.get_user_extension_folder("markup")))
+        print(_("Search folders for additional markup functionality:\n {0}").format(collect.get_user_extension_folder("markup")))
         print()
-        print(gettext.gettext("Search folders for additional sort functionality:\n {0}").format(collect.get_user_extension_folder("sort")))
+        print(_("Search folders for additional sort functionality:\n {0}").format(collect.get_user_extension_folder("sort")))
         sys.exit(0)
 
     # logging

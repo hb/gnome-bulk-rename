@@ -22,8 +22,6 @@ from gi.repository import Gio
 from gi.repository import Gtk
 from gi.repository import GLib
 
-from gettext import gettext as _
-
 import constants
 
 

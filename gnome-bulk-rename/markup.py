@@ -22,8 +22,6 @@ import difflib
 
 from gi.repository import GLib
 
-from gettext import gettext as _
-
 import constants
 
 

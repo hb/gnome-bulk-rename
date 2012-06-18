@@ -11,6 +11,9 @@ import os.path
 
 import unittest
 import trace
+import gettext
+
+gettext.install('@GETTEXT_PACKAGE@')
 
 def _get_root_dir():
     return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])

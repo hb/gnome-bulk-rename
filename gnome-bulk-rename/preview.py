@@ -44,8 +44,6 @@ import datetime
 
 from gi.repository import Gtk
 
-from gettext import gettext as _
-
 import gtkutils
 import EXIF
 

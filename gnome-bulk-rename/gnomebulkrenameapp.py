@@ -28,8 +28,6 @@ from gi.repository import Gio
 from gi.repository import Gdk
 from gi.repository import Gtk
 
-from gettext import gettext as _
-
 from preview import PreviewNoop,PreviewReplaceLongestSubstring, PreviewCommonModificationsSimple
 from markup import MarkupColor
 from sort import Manually as SortManually
