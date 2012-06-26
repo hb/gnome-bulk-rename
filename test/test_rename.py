@@ -2,12 +2,29 @@ import unittest
 import tempfile
 import shutil
 import os.path
+import random
 
 from gi.repository import Gio
 from gi.repository import Gtk
 
 import rename
 import constants as c
+
+import runtests
+
+
+def _delete_recursively(gfile):
+    if gfile.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) == Gio.FileType.DIRECTORY:
+        for fileinfo in gfile.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
+            _delete_recursively(gfile.get_child(fileinfo.get_name()))
+    gfile.delete(None)
+
+
+def _get_random_dir_name():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dirname = os.path.basename(tmpdir)
+    return dirname
+
 
 class _NameMap:
     def __init__(self, row, target_rel_dir=None):
@@ -19,20 +36,36 @@ class _NameMap:
                 base_uri = ""
             self.gfile_prev = Gio.file_new_for_commandline_arg(base_uri+"/"+row[c.FILES_MODEL_COLUMN_PREVIEW])
         else:
-            self.gfile_prev = Gio.file_new_for_commandline_arg(target_rel_dir+"/"+row[c.FILES_MODEL_COLUMN_PREVIEW])
+            self.gfile_prev = target_rel_dir.resolve_relative_path(row[c.FILES_MODEL_COLUMN_PREVIEW])
 
 
 
 class TestRenamer(unittest.TestCase):
 
+    def __init__(self, *args):
+        unittest.TestCase.__init__(self, *args)
+        self.tmp_uri = None
+        
+        
     def tearDown(self):
         if False:
-            print("Left tmp dir intact: {0}".format(self._tmp_dir))
+            print("Left tmp dir intact: {0}".format(self._tmp_dir.get_uri()))
         else:
-            shutil.rmtree(self._tmp_dir)
+            _delete_recursively(self._tmp_dir)
 
     def setUp(self):
-        self._tmp_dir = tempfile.mkdtemp()
+        # tmp uri
+        if not self.tmp_uri:
+            self.tmp_uri = "file://" + tempfile.gettempdir() 
+        if not self.tmp_uri.endswith("/"):
+            self.tmp_uri = self.tmp_uri + "/"
+        
+        self._tmp_dir = Gio.file_new_for_commandline_arg(self.tmp_uri + _get_random_dir_name())
+        try:
+            self._tmp_dir.make_directory(None)
+        except:
+            self.fail("Base uri does not exist: {0}".format(self.tmp_uri))
+        
         
         self._model = Gtk.ListStore(*c.FILES_MODEL_COLUMNS)
         self._mapping = None
@@ -47,7 +80,7 @@ class TestRenamer(unittest.TestCase):
         
         row[c.FILES_MODEL_COLUMN_ORIGINAL] = original
         row[c.FILES_MODEL_COLUMN_PREVIEW] = preview
-        row[c.FILES_MODEL_COLUMN_GFILE] = Gio.file_new_for_commandline_arg(filepath)
+        row[c.FILES_MODEL_COLUMN_GFILE] = filepath
         model.append(row)
         return row
 
@@ -56,8 +89,8 @@ class TestRenamer(unittest.TestCase):
         if rel_path is None:
             path = self._tmp_dir
         else:
-            path = os.path.join(self._tmp_dir, rel_path)
-        filepath = os.path.join(path, original)
+            path = self._tmp_dir.resolve_relative_path(rel_path)
+        filepath = path.resolve_relative_path(original)
         row = self._add_to_model(model, original, preview, filepath)
         
         ss = row[c.FILES_MODEL_COLUMN_GFILE].create(Gio.FileCreateFlags.REPLACE_DESTINATION, None)
@@ -69,8 +102,8 @@ class TestRenamer(unittest.TestCase):
         if rel_path is None:
             path = self._tmp_dir
         else:
-            path = os.path.join(self._tmp_dir, rel_path)
-        filepath = os.path.join(path, original)
+            path = self._tmp_dir.resolve_relative_path(rel_path)
+        filepath = path.resolve_relative_path(original)
         row = self._add_to_model(model, original, preview, filepath)
         retval = row[c.FILES_MODEL_COLUMN_GFILE].make_directory_with_parents(None)
         self.assertTrue(retval)
@@ -161,7 +194,7 @@ class TestRenamer(unittest.TestCase):
         self._mapping = []
         self._mapping.append(_NameMap(self._model[0]))
         self._mapping.append(_NameMap(self._model[1]))
-        self._mapping.append(_NameMap(self._model[2], self._tmp_dir+"/renamed_dir_1"))
+        self._mapping.append(_NameMap(self._model[2], self._tmp_dir.resolve_relative_path("renamed_dir_1")))
         
         rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
         Gtk.main()
@@ -179,9 +212,9 @@ class TestRenamer(unittest.TestCase):
         self._mapping = []
         self._mapping.append(_NameMap(self._model[0]))
         self._mapping.append(_NameMap(self._model[1]))
-        self._mapping.append(_NameMap(self._model[2], self._tmp_dir+"/renamed_dir_1"))
-        self._mapping.append(_NameMap(self._model[3], self._tmp_dir+"/renamed_dir_1"))
-        self._mapping.append(_NameMap(self._model[4], self._tmp_dir+"/renamed_dir_1/renamed_dir_2"))
+        self._mapping.append(_NameMap(self._model[2], self._tmp_dir.resolve_relative_path("renamed_dir_1")))
+        self._mapping.append(_NameMap(self._model[3], self._tmp_dir.resolve_relative_path("renamed_dir_1")))
+        self._mapping.append(_NameMap(self._model[4], self._tmp_dir.resolve_relative_path("renamed_dir_1/renamed_dir_2")))
         
         rename.Rename(self._model, two_pass=self._two_pass, done_callback=self._cb_test_rename)
         Gtk.main()
@@ -192,5 +225,4 @@ class TestRenamer(unittest.TestCase):
     @unittest.expectedFailure
     def test_rename_remote(self):
         raise NotImplementedError
-    
     

@@ -3,59 +3,85 @@
 __version__ = "0.0.1"
 
 import sys
-from optparse import OptionParser
-
+from argparse import ArgumentParser
 import glob
 import sys
 import os.path
-
 import unittest
 import trace
 import gettext
+import copy
 
 gettext.install('@GETTEXT_PACKAGE@')
+
 
 def _get_root_dir():
     return '/'.join(os.path.dirname(os.path.abspath(__file__)).split('/')[:-1])
 
 
-def rununittests(names):
+def _add_tmp_uri_tests(suite, tmp_uri):
+    new_tests = []
+    for el in suite:
+        if isinstance(el, unittest.TestSuite):
+            _add_tmp_uri_tests(el, tmp_uri)
+        else:
+            assert isinstance(el, unittest.TestCase)
+            if hasattr(el, "tmp_uri"):
+                el_cpy = copy.deepcopy(el)
+                el_cpy.tmp_uri = tmp_uri
+                new_tests.append(el_cpy)
+    suite.addTests(new_tests)
+
+def _rununittests(names, args):
     # there are checks for messages, so turn off translation
     os.environ['LC_MESSAGES'] = "C"
 
     testsuite = unittest.TestLoader().loadTestsFromNames(names)
+    
+    # if tmp uris are given on the command line, add tests that can handle those
+    if args.tmp_uri:
+        for uri in args.tmp_uri:
+            _add_tmp_uri_tests(testsuite, uri)
+    
     runner = unittest.TextTestRunner(verbosity=2)
     return runner.run(testsuite)
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-    parser = OptionParser(usage="%prog", version="%prog " + __version__, description="Run test suite.")
-    parser.add_option("--coverage", action="store_true", default=False, help="Analyze test coverage.")
-    (opt, dummy_args) = parser.parse_args(args=argv[1:])
 
-    names = [os.path.basename(el)[:-3] for el in glob.iglob(os.path.join(_get_root_dir(), "test", "test_*.py"))]
+def main(argv=None):
 
     sys.path.insert(0, os.path.join(_get_root_dir(), "gnome-bulk-rename"))
     sys.path.insert(0, os.path.join(_get_root_dir(), "test"))
+
+    import config
+
+    if argv is None:
+        argv = sys.argv
+    parser = ArgumentParser(description="Run test suite.")
+    parser.add_argument("--version", action="version", version="%(prog)s "+config.version)
     
-    if opt.coverage:
+    parser.add_argument("--coverage", action="store_true", default=False, help="Analyze test coverage.")
+    parser.add_argument("--tmp-uri", action="append")
+    
+    args = parser.parse_args(args=argv[1:])
+    
+    names = [os.path.basename(el)[:-3] for el in glob.iglob(os.path.join(_get_root_dir(), "test", "test_*.py"))]
+    
+    if args.coverage:
         ignoremods = ["runtests"]
         ignoremods.extend(names)
         tracer = trace.Trace(count=1, trace=0, ignoredirs=["/usr"], ignoremods=ignoremods)
-        testresult = tracer.runfunc(rununittests, names)
+        testresult = tracer.runfunc(_rununittests, names, args)
         trace_results = tracer.results()
         coverdir = "/tmp/gnome-bulk-rename-trace"
         trace_results.write_results(show_missing=True, summary=True, coverdir=coverdir)
         print("Wrote detailed trace analysis to '{0}'".format(coverdir))
     else:
-        testresult = rununittests(names)
+        testresult = _rununittests(names, args)
 
     if not testresult.wasSuccessful():
-        sys.exit(1)
+        return 1
 
 
 if __name__ == "__main__":
-    #sys.exit(main(["runtests.py", "--coverage"]))
     sys.exit(main())
