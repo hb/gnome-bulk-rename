@@ -15,9 +15,25 @@ import runtests
 
 def _delete_recursively(gfile):
     if gfile.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, None) == Gio.FileType.DIRECTORY:
-        for fileinfo in gfile.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
-            _delete_recursively(gfile.get_child(fileinfo.get_name()))
-    gfile.delete(None)
+
+        success = False
+        while not success:
+            try:
+                for fileinfo in gfile.enumerate_children(",".join([Gio.FILE_ATTRIBUTE_STANDARD_NAME, Gio.FILE_ATTRIBUTE_STANDARD_TYPE, Gio.FILE_ATTRIBUTE_STANDARD_IS_HIDDEN]), 0, None):
+                    _delete_recursively(gfile.get_child(fileinfo.get_name()))
+            except:
+                pass
+            else:
+                success = True
+
+    success = False
+    while not success:
+        try:
+            gfile.delete(None)
+        except:
+            pass
+        else:
+            success = True
 
 
 def _get_random_dir_name():
@@ -45,8 +61,8 @@ class TestRenamer(unittest.TestCase):
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
         self.tmp_uri = None
-        
-        
+    
+    
     def tearDown(self):
         if False:
             print("Left tmp dir intact: {0}".format(self._tmp_dir.get_uri()))
@@ -61,11 +77,14 @@ class TestRenamer(unittest.TestCase):
             self.tmp_uri = self.tmp_uri + "/"
         
         self._tmp_dir = Gio.file_new_for_commandline_arg(self.tmp_uri + _get_random_dir_name())
-        try:
-            self._tmp_dir.make_directory(None)
-        except:
-            self.fail("Base uri does not exist: {0}".format(self.tmp_uri))
         
+        assert self._tmp_dir.query_exists(None) == False
+        
+        while not self._tmp_dir.query_exists(None):
+            try:
+                self._tmp_dir.make_directory(None)
+            except:
+                pass
         
         self._model = Gtk.ListStore(*c.FILES_MODEL_COLUMNS)
         self._mapping = None
@@ -93,7 +112,15 @@ class TestRenamer(unittest.TestCase):
         filepath = path.resolve_relative_path(original)
         row = self._add_to_model(model, original, preview, filepath)
         
-        ss = row[c.FILES_MODEL_COLUMN_GFILE].create(Gio.FileCreateFlags.REPLACE_DESTINATION, None)
+        success = False
+        while not success:
+            try:
+                ss = row[c.FILES_MODEL_COLUMN_GFILE].create(Gio.FileCreateFlags.REPLACE_DESTINATION, None)
+            except:
+                pass
+            else:
+                success = True
+        
         ss.write(row[c.FILES_MODEL_COLUMN_GFILE].get_uri().encode("utf-8"), None)
         ss.close(None)
 
@@ -105,7 +132,14 @@ class TestRenamer(unittest.TestCase):
             path = self._tmp_dir.resolve_relative_path(rel_path)
         filepath = path.resolve_relative_path(original)
         row = self._add_to_model(model, original, preview, filepath)
-        retval = row[c.FILES_MODEL_COLUMN_GFILE].make_directory_with_parents(None)
+        success = False
+        while not success:
+            try:
+                retval = row[c.FILES_MODEL_COLUMN_GFILE].make_directory_with_parents(None)
+            except:
+                pass
+            else:
+                success = True
         self.assertTrue(retval)
 
 
